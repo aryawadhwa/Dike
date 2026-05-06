@@ -3,7 +3,9 @@ package diff
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -17,23 +19,30 @@ type Summary struct {
 // ComputeDiff compares the host's current directory with the container's /workspace.
 // For simplicity, it just compares the presence of files.
 func ComputeDiff(containerName string) (*Summary, error) {
-	// Get host files
+	// Get host files using Go's standard library for cross-platform compatibility
 	hostFiles := make(map[string]bool)
-	hostCmd := exec.Command("find", ".", "-type", "f", "-not", "-path", "*/.git/*")
-	var hostOut bytes.Buffer
-	hostCmd.Stdout = &hostOut
-	if err := hostCmd.Run(); err == nil {
-		for _, f := range strings.Split(hostOut.String(), "\n") {
-			f = strings.TrimSpace(f)
-			if f != "" {
-				// Normalize path (remove leading ./)
-				f = strings.TrimPrefix(f, "./")
-				hostFiles[f] = true
-			}
+	err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil // Skip files we can't access
 		}
+		if info.IsDir() {
+			if info.Name() == ".git" {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		// Normalize path
+		rel, err := filepath.Rel(".", path)
+		if err == nil && rel != "." {
+			hostFiles[filepath.ToSlash(rel)] = true
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to walk host filesystem: %w", err)
 	}
 
-	// Get container files
+	// Get container files (this still needs to run inside the linux container)
 	containerFiles := make(map[string]bool)
 	contCmd := exec.Command("docker", "exec", containerName, "find", "/workspace", "-type", "f", "-not", "-path", "*/.git/*")
 	var contOut bytes.Buffer

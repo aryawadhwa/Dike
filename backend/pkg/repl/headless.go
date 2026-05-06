@@ -74,9 +74,8 @@ func HeadlessExecute(cmdStr string, dir string) {
 
 		diffSummary, err := diff.ComputeDiff("pulse-ghost")
 		if err == nil {
-			out.DiffSummary.Created = diffSummary.Created
+			out.DiffSummary.Created = diffSummary.Added
 			out.DiffSummary.Deleted = diffSummary.Deleted
-			out.DiffSummary.Modified = diffSummary.Modified
 		}
 
 		out.Explanation = advisor.ExplainCommand(cmdStr)

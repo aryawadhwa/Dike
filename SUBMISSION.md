@@ -1,7 +1,7 @@
-# 🛡️ RepoGuard: The Autonomous CI/CD Auditor
+# 🛡️ RepoGuard (Pulse): The Autonomous CI/CD Auditor
 
 **Theme:** Repository Analyzer & Build Feasibility Engine (Theme 3) + Tech Sensing (Theme 2)
-**Tech Stack:** Go, Docker, SQLite, CrewAI (Open-Source Multi-Agent Framework)
+**Tech Stack:** Go, Docker, SQLite, PulseFlow (Custom Go-Native Multi-Agent Orchestrator)
 **Status:** ✅ Production Ready (v1.0)
 
 ---
@@ -17,11 +17,11 @@ In the rapidly digitizing landscape of India and the globe, the most devastating
   - **Indian Context:** Hospitals in New Delhi/NCR reported hours of disrupted digital patient care during recent global outages. Bangalore’s tech workforce faced unexpected downtime, grinding productivity to a halt.
   - **The "Fat-Finger" Risk:** For local MSMEs and student developers, a single command like `rm -rf /usr/bin` or `kubectl delete namespace` executed in a hurry can destroy weeks of work or wipe customer data instantly.
 
-Current CI/CD tools (GitHub Actions, Jenkins) execute build scripts blindly. They check if the build *passes*, but they do not check if the script itself is a **time bomb** waiting to go off.
+Current CI/CD tools execute build scripts blindly. They check if the build *passes*, but they do not check if the script itself is a **time bomb** waiting to go off.
 
 ---
 
-## 2. The Solution: RepoGuard
+## 2. The Solution: RepoGuard (Pulse)
 
 **RepoGuard** is a **Multi-Agent DevSecOps Framework** designed to act as a "Pre-Flight Check" for software development.
 
@@ -34,238 +34,129 @@ Instead of reacting to data loss after it happens, RepoGuard intercepts, analyze
 
 ---
 
-## 3. Multi-Agent Architecture (Orchestrated by CrewAI)
+## 3. Multi-Agent Architecture (PulseFlow Orchestrator)
 
-To maximize feasibility and technical depth, we utilize **CrewAI**, a lightweight, open-source multi-agent framework, to orchestrate our custom high-performance **Pulse Engine** (built in Go).
+To maximize feasibility, execution speed, and technical depth, we engineered **PulseFlow**—a lightweight, custom Go-native Multi-Agent Orchestrator. 
 
-We selected CrewAI over heavier orchestration platforms (like standard OpenClaw instances) to ensure our solution runs efficiently on local hardware without complex cloud dependencies, while strictly adhering to the multi-agent paradigm.
+We evaluated heavy frameworks like OpenClaw and CrewAI, but found them too bloated for local, high-speed security workloads. Instead, we built a zero-dependency orchestrator directly in Go that coordinates a specialized team of AI agents.
 
 ### The Agent Team
 
-1.  **The Hunter Agent (Scout)**
-    - **Role:** Scours the web (GitHub) for relevant repositories based on topics (e.g., "DevOps", "Security", "Bangalore").
-    - **Output:** A list of repository URLs queued for analysis.
+1.  **The Gatekeeper Agent (Risk Assessor)**
+    - **Role:** The frontline defender. Uses AST parsing (`tree-sitter`) to evaluate intercepted commands against strict YAML safety policies.
+    - **Output:** Classifies commands as `ALLOW`, `PREVIEW`, or `DENY`.
 
-2.  **The Cloner Agent**
-    - **Role:** Clones target repositories locally and inspects build infrastructure (`Dockerfile`, `Makefile`, `package.json`).
-    - **Output:** Identifies potential build commands (e.g., `docker build .`, `npm install`).
+2.  **The Ghost Agent (Sandbox Engine)**
+    - **Role:** For risky commands, spins up an isolated Docker Alpine container. Dynamically clones the target directory to safely simulate the "blast radius."
+    - **Output:** Captures sandbox stdout/stderr.
 
-3.  **The Builder Agent (Risk Assessor)**
-    - **Role:** Attempts to trigger the build process but delegates execution to the **Pulse Engine**.
-    - **Integration:** Calls `Pulse` via our custom `PulseSkill`.
+3.  **The Diff Agent (Analyzer)**
+    - **Role:** Compares the host filesystem with the post-execution sandbox filesystem.
+    - **Output:** Generates a unified summary of exactly which files would be destroyed or altered.
 
-4.  **The Pulse Engine (Custom Tool / "The Muscle")**
-    - **Technology:** Go (High-performance, single binary).
-    - **Role:** The "Safety Sandbox."
-      - **Interceptor:** Catches the command.
-      - **Ghost:** Executes in a Docker Alpine container (isolated).
-      - **Diff Agent:** Computes filesystem changes (Created/Deleted/Modified files).
-      - **Advisor:** LLM-powered explanation of risk.
-    - **Output:** JSON Report containing Risk Level (`HIGH`, `CRITICAL`) and File Diff.
+4.  **The Advisor Agent (LLM Interpreter)**
+    - **Role:** An LLM-powered safety advisor (Local LLaMA 3). When a user requests an explanation (`e`), it generates a plain-English explanation of the command's technical risk and business impact.
+    - **Output:** Zero-cost, maximum-privacy business impact analysis.
 
-5.  **The Reporter Agent**
-    - **Role:** Synthesizes the Pulse report into a human-readable audit summary.
-    - **Action:** Flags critical risks and generates a "Fix Recommendation."
+5.  **The Auditor Agent (Compliance)**
+    - **Role:** Synthesizes the decision history into an immutable SQLite logging engine.
+    - **Output:** Records the incident for the SOC2 web dashboard.
 
 ### Architecture Diagram
 ```mermaid
 flowchart LR
-    A[Hunter Agent] -->|Repo URLs| B[Cloner Agent]
-    B -->|Build Command| C[Builder Agent]
-    C -->|Execute & Analyze| D[Pulse Engine - Go/Docker]
-    D -->|JSON Report| E[Reporter Agent]
-    E -->|Audit Email| F[(Maintainer)]
-
-    subgraph Pulse Engine
-        D1[Interceptor] --> D2[Gatekeeper]
-        D2 -->|Risky| D3[Ghost Container]
-        D3 --> D4[Diff Engine]
-        D4 --> D5[Advisor - LLM]
-        D2 -->|Safe| D6[Host Executor]
-        D4 --> D7[Auditor - SQLite]
-    end
+    A[User/Build Script] -->|Executes Command| B[Gatekeeper Agent]
+    B -->|Risky| C[Ghost Sandbox Agent]
+    B -->|Safe| D[Host Executor]
+    
+    C -->|Simulates Execution| E[Diff Agent]
+    E -->|Blast Radius Diff| F[User Prompt]
+    F -.->|Requests Help| G[Advisor Agent - Local LLM]
+    
+    F -->|Approved| D
+    F -->|Rejected| H[Discard Sandbox]
+    
+    D --> I[(Auditor Agent - SQLite)]
+    H --> I
 ```
 
 ---
 
 ## 4. Tech Stack & Components
 
-- **Orchestration Framework:** CrewAI (Python) - Manages agent roles, tasks, and delegation.
+- **Orchestration Framework:** PulseFlow (Custom Go-native interface orchestrator).
 - **Core Engine:** Go (Golang) - Ensures speed, cross-platform support (Windows/Linux/Mac), and single-binary distribution.
 - **Sandbox:** Docker Alpine Linux - Lightweight isolation for "Ghost" execution.
 - **Database:** SQLite (`mattn/go-sqlite3`) - Immutable audit logging.
-- **LLM:** OpenAI API (GPT-4o-mini) with fallback to local mock - For risk explanation.
-- **Web Dashboard:** HTML/JS + Go `net/http` - Real-time audit visualization.
+- **LLM:** Local offline LLaMA-3 model - For risk explanation with 100% data privacy.
+- **Web Dashboard:** HTML/CSS + Go `net/http` - Real-time SOC2 audit visualization.
 
 ---
 
-## 5. Skill.md Definition
-
-This file defines the `PulseSkill` used by the Builder Agent to interact with the Go binary.
-
-### `skills/PulseSkill.md`
-
-```markdown
-# Skill: Pulse Sandbox Auditor
-
-**Type:** Tool
-**Description:** Executes a potentially risky shell command inside a Docker Alpine "Ghost" container and returns a filesystem diff and risk assessment.
-
-## Inputs
-- `command` (string): The shell command to execute (e.g., `docker build .`, `rm -rf node_modules`).
-- `directory` (string): The absolute path to execute the command in.
-
-## Outputs
-- `risk_level` (string): `LOW`, `MEDIUM`, `HIGH`, or `CRITICAL`.
-- `diff_summary` (object): Detailed breakdown of filesystem changes.
-  - `created` (list): Paths of files created.
-  - `deleted` (list): Paths of files deleted.
-  - `modified` (list): Paths of files modified.
-- `stdout` (string): Standard output of the command execution.
-- `explanation` (string): Natural language explanation of the business impact (generated by Advisor LLM).
-
-## Usage in Agent (Example)
-The "Builder Agent" in CrewAI calls this skill before running a build command on the host.
-
-```python
-from crewai import Agent, Task
-from tools import PulseSkill
-
-builder = Agent(
-  role='Build Engineer',
-  goal='Execute build commands safely.',
-  tools=[PulseSkill()]
-)
-
-# Example Task
-audit_task = Task(
-  description="Analyze the risk of running 'npm install' in the repository.",
-  expected_output="A JSON object containing risk level and file diff.",
-  agent=builder,
-  tools=[PulseSkill()]
-)
-```
-
-## Implementation Details
-- Uses `docker run --rm` to create a temporary container.
-- Binds the target directory to `/work` inside the container.
-- Compares filesystem snapshots (`find /work -type f`) before and after execution.
-- Returns structured JSON to the orchestrator for decision making.
-```
-
----
-
-## 6. Memory Implementation
-
-To support the "Sensing" and "Learning" aspect of the agents, we implement a shared **Memory Layer** using persistent JSON storage backed by SQLite.
-
-### Architecture
-- **Storage:** `memory/state.json`
-- **Mechanism:**
-  - **Short-Term Memory:** The `Builder Agent` remembers the risk level of specific commands (e.g., `npm install` is usually LOW risk, `docker system prune` is HIGH risk). This reduces the need to sandbox known-safe commands repeatedly.
-  - **Context Memory:** The `Hunter Agent` tags repositories with "Safe" or "Risky" labels based on past audit history.
-  - **Entity Memory:** The `Auditor` maintains a history of "Frequent Offenders" (files or commands often flagged).
-
-### Data Structure
-```json
-{
-  "repos": {
-    "github.com/user/project": {
-      "last_audited": "2023-10-27T10:00:00Z",
-      "risk_score": 0.85,
-      "status": "SAFE"
-    }
-  },
-  "commands": {
-    "docker system prune": {
-      "risk_level": "HIGH",
-      "executed_count": 5,
-      "last_decision": "REJECTED"
-    }
-  }
-}
-```
-
----
-
-## 7. Video Demo Script (2 Minutes)
+## 5. Video Demo Script (2 Minutes)
 
 **[00:00 - 00:20] The Hook (Emotional)**
-- *Visual:* Black screen with typing text.
-- *Voiceover:* "Last month, a tech startup in India lost three years of customer data. Not because of a hacker. But because of a single space in a script: `git clean -fdx`."
-- *Visual:* News headlines flashing (Cloudflare outage, Hospital downtime).
-- *Voiceover:* "These aren't accidents. They are preventable. We built RepoGuard to stop them before they happen."
+- *Visual:* Slide with headlines flashing (Cloudflare outage, Hospital downtime).
+- *Voiceover:* "Last month, a tech startup in India lost three years of customer data. Not because of a hacker. But because of a single space in a script: `git clean -fdx`. These aren't accidents. They are preventable. We built Pulse to stop them before they happen."
 
 **[00:20 - 00:50] The Solution (Technical)**
 - *Visual:* Architecture Diagram fading in.
-- *Voiceover:* "RepoGuard is a Multi-Agent System. It clones repos, intercepts build commands, and runs them in a 'Ghost' sandbox. We use CrewAI to orchestrate the agents and a custom Go engine for the heavy lifting."
+- *Voiceover:* "Pulse is a Multi-Agent DevSecOps Framework. It intercepts build commands and runs them in a 'Ghost' sandbox. We engineered PulseFlow, a custom Go-native orchestrator, to coordinate the agents locally with zero dependencies."
 
 **[00:50 - 01:30] The Live Demo**
-- *Visual:* Split screen. Left: Terminal. Right: Web Dashboard.
+- *Visual:* Split screen. Left: Terminal. Right: Web Dashboard (`localhost:8080`).
 - *Action:*
-  1. Agent clones a "Bad Repo" (Pre-seeded).
-  2. Agent triggers `npm install`.
-  3. **Pulse** intercepts. Terminal shows: `INTERCEPTED: Analyzing Risk...`
-  4. **Ghost** spins up. Terminal shows: `Running in Docker Container ID: #9a2b...`
-  5. **Diff** output appears: `Deleted: node_modules/`
-  6. **Dashboard** updates: New Entry -> `Risk: HIGH`, `Decision: REJECTED`.
-- *Voiceover:* "Pulse caught a destructive clean command. It didn't just block it; it showed exactly what would have died."
+  1. User triggers a risky command: `rm -rf /` or `npm install`
+  2. **PulseFlow** orchestrator kicks in. Terminal shows: `Gatekeeper required PREVIEW...`
+  3. **Ghost Agent** spins up Docker container.
+  4. **Diff Agent** outputs the exact blast radius.
+  5. User presses `e`. **Advisor Agent** uses local LLM to explain the business impact.
+  6. **Dashboard** updates in real-time with the full audit log.
+- *Voiceover:* "Pulse caught a destructive clean command. It didn't just block it; it proved exactly what would have died, with zero cloud dependency."
 
 **[01:30 - 01:45] The Impact**
 - *Visual:* "Report Generated" notification on dashboard.
-- *Voiceover:* "RepoGuard brings enterprise-grade audit trails to grassroots developers. We aren't just backing up code; we're securing the digital economy, one command at a time."
+- *Voiceover:* "We bring enterprise-grade SRE audit trails to grassroots developers. We aren't just backing up code; we're cutting the problem tree at the root."
 
 ---
 
-## 8. Setup & Run Instructions
+## 6. Setup & Run Instructions
 
 ### Prerequisites
-- Go 1.21+
+- Go 1.22+
 - Docker Desktop
-- Python 3.9+ (for CrewAI agents)
-- OpenAI API Key (Optional, for Advisor LLM)
+- Xcode Command Line Tools (macOS only, for SQLite)
 
 ### Installation
 ```bash
 # Clone the Repository
-git clone https://github.com/your-org/repo-guard.git
-cd repo-guard
+git clone https://github.com/aryawadhwa/Dike.git
+cd Dike
 
-# Install Python Dependencies (Agents)
-pip install -r requirements.txt
-
-# Build the Pulse Engine (Go)
-go build -o pulse.exe cmd/pulse/main.go
-# Note: Generates pulse.exe on Windows, pulse on Linux/Mac
+# Accept Xcode license (macOS only)
+sudo xcodebuild -license
 ```
 
 ### Running the System
 
-**1. Start the Pulse Engine (Backend)**
 ```bash
-# Interactive Mode
-./pulse.exe
+# Navigate to the backend directory
+cd backend
 
-# Web Dashboard Mode
-./pulse.exe --web
+# Launch the Pulse Multi-Agent framework with the Web Dashboard enabled
+go run cmd/pulse/main.go --web
 # Dashboard available at http://localhost:8080
-```
-
-**2. Start the Multi-Agent Crew**
-```bash
-python main.py
-# The agents will begin hunting, cloning, and auditing repositories automatically.
 ```
 
 ---
 
-## 9. Evaluation Criteria Alignment
+## 7. Evaluation Criteria Alignment
 
-- **Working Prototype (35%):** The system is fully functional. The Go binary executes, the Docker sandbox works, and the CrewAI agents orchestrate the flow end-to-end.
+- **Working Prototype (35%):** The system is fully functional end-to-end. The Go binary intercepts commands, the Docker sandbox executes safely, and the PulseFlow orchestrator manages the pipeline.
 - **User Experience (30%):**
-  - **CLI:** Clean, colored output with clear `[y/N]` prompts.
-  - **Web Dashboard:** A dark-mode, responsive UI that visualizes the "Audit Timeline" in real-time.
-- **Technical Depth (25%):** We demonstrate a complex fusion of Go (systems level), Python (AI orchestration), and Docker (containerization). We built a custom tool (`Pulse`) rather than relying solely on existing APIs.
+  - **CLI:** Clean, interactive REPL with clear `[y/N/e]` prompts.
+  - **Web Dashboard:** A dark-mode, responsive SOC2 UI that visualizes the "Audit Timeline" in real-time.
+- **Technical Depth (25%):** We engineered a custom Go-native orchestrator (PulseFlow) instead of relying on heavy Python libraries like CrewAI. This showcases deep software architecture, interface design, and systems-level (Docker) integration.
 - **Novelty (10%):**
-  - Combining a high-level Multi-Agent Framework with a low-level Shell Sandbox is a unique approach to DevSecOps.
-  - Addressing the "Human Error" root cause directly in the build pipeline is a largely unsolved problem in the open-source community.
+  - Combining a multi-agent framework directly within a high-performance shell interceptor is a unique approach to DevSecOps.
+  - Addressing the "Human Error" root cause via local sandbox simulation is a highly robust solution for MSMEs.

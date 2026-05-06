@@ -6,11 +6,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/aryawadhwa/dike/pkg/audit"
-	"github.com/aryawadhwa/dike/pkg/advisor"
-	"github.com/aryawadhwa/dike/pkg/diff"
-	"github.com/aryawadhwa/dike/pkg/gatekeeper"
 	"github.com/aryawadhwa/dike/pkg/ghost"
+	"github.com/aryawadhwa/dike/pkg/orchestrator"
 	"github.com/aryawadhwa/dike/pkg/policy"
 	"github.com/peterh/liner"
 )
@@ -69,56 +66,65 @@ func Start() {
 			break
 		}
 
-		decision := gatekeeper.Evaluate(input, pol)
-		switch decision {
-		case policy.DecisionDeny:
-			fmt.Printf("❌ Gatekeeper DENIED this command.\n")
-			_ = audit.LogDecision(input, "DENY", "REJECTED", "")
-		case policy.DecisionPreview:
-			fmt.Printf("⚠️  Gatekeeper required PREVIEW. Executing in Ghost Sandbox...\n")
-			output, err := ghost.ExecPreview(input)
-			if err != nil {
-				fmt.Printf("Ghost Engine error: %v\n", err)
-				_ = audit.LogDecision(input, "PREVIEW", "ERROR", err.Error())
-			} else {
-				fmt.Printf("--- Ghost Output ---\n%s\n--------------------\n", output)
-				
-				// Compute Diff
-				diffSummary, err := diff.ComputeDiff("pulse-ghost")
-				var diffStr string
-				if err != nil {
-					diffStr = fmt.Sprintf("Error computing diff: %v", err)
-					fmt.Println(diffStr)
-				} else {
-					diffStr = diffSummary.String()
-					fmt.Printf("\n--- Diff Preview ---\n%s\n--------------------\n", diffStr)
-				}
+		// Construct the Multi-Agent Context
+		ctx := &orchestrator.Context{
+			Command: input,
+			Policy:  pol,
+		}
 
-				// Prompt User
-				for {
-					fmt.Print("\nApply to host? [y/N/e (explain)]: ")
-					ans, _ := line.Prompt("")
-					ans = strings.ToLower(strings.TrimSpace(ans))
-					
-					if ans == "e" || ans == "explain" {
-						fmt.Println("\n" + advisor.ExplainCommand(input))
-						// Loop continues to ask again
-					} else if ans == "y" || ans == "yes" {
-						fmt.Println("Executing on host...")
-						executeHostCommand(input)
-						_ = audit.LogDecision(input, "PREVIEW", "APPLIED", diffStr)
-						break
-					} else {
-						fmt.Println("Discarding sandbox changes.")
-						_ = audit.LogDecision(input, "PREVIEW", "REJECTED", diffStr)
-						break
-					}
-				}
-			}
-		default:
-			// DecisionAllow
+		// Stage 1: Intercept & Evaluate
+		stage1 := []orchestrator.Agent{
+			&orchestrator.GatekeeperAgent{},
+		}
+		orchestrator.RunPipeline(stage1, ctx)
+
+		if ctx.Decision == string(policy.DecisionDeny) {
+			ctx.Decision = "REJECTED"
+			orchestrator.RunPipeline([]orchestrator.Agent{&orchestrator.AuditorAgent{}}, ctx)
+			continue
+		}
+
+		if ctx.Decision == string(policy.DecisionAllow) {
 			executeHostCommand(input)
-			_ = audit.LogDecision(input, "ALLOW", "APPLIED", "")
+			ctx.Decision = "APPLIED"
+			orchestrator.RunPipeline([]orchestrator.Agent{&orchestrator.AuditorAgent{}}, ctx)
+			continue
+		}
+
+		// Stage 2: Sandbox Preview
+		stage2 := []orchestrator.Agent{
+			&orchestrator.GhostAgent{},
+			&orchestrator.DiffAgent{},
+		}
+		err = orchestrator.RunPipeline(stage2, ctx)
+		if err != nil {
+			fmt.Printf("Pipeline error: %v\n", err)
+			ctx.Decision = "ERROR"
+			orchestrator.RunPipeline([]orchestrator.Agent{&orchestrator.AuditorAgent{}}, ctx)
+			continue
+		}
+
+		// Stage 3: Human-in-the-Loop & Advisor
+		for {
+			fmt.Print("\nApply to host? [y/N/e (explain)]: ")
+			ans, _ := line.Prompt("")
+			ans = strings.ToLower(strings.TrimSpace(ans))
+
+			if ans == "e" || ans == "explain" {
+				adv := &orchestrator.AdvisorAgent{PromptResponse: ans}
+				orchestrator.RunPipeline([]orchestrator.Agent{adv}, ctx)
+			} else if ans == "y" || ans == "yes" {
+				fmt.Println("Executing on host...")
+				executeHostCommand(input)
+				ctx.Decision = "APPLIED"
+				orchestrator.RunPipeline([]orchestrator.Agent{&orchestrator.AuditorAgent{}}, ctx)
+				break
+			} else {
+				fmt.Println("Discarding sandbox changes.")
+				ctx.Decision = "REJECTED"
+				orchestrator.RunPipeline([]orchestrator.Agent{&orchestrator.AuditorAgent{}}, ctx)
+				break
+			}
 		}
 	}
 }

@@ -10,9 +10,10 @@ def run_pulse_sandbox(command: str, directory: str = ".") -> str:
     Always use this tool before executing any build or clean commands.
     """
     try:
-        # Run Pulse with JSON output flag
+        # Run Pulse with JSON output flag via go run
         result = subprocess.run(
-            ["./backend/pulse", "--json", "--cmd", command, "--dir", directory], 
+            ["go", "run", "cmd/pulse/main.go", "--json", "--cmd", command, "--dir", directory], 
+            cwd="./backend",
             capture_output=True, 
             text=True,
             check=True
@@ -20,5 +21,3 @@ def run_pulse_sandbox(command: str, directory: str = ".") -> str:
         return result.stdout
     except subprocess.CalledProcessError as e:
         return json.dumps({"status": "error", "message": str(e), "output": e.stdout})
-    except FileNotFoundError:
-        return json.dumps({"status": "error", "message": "Pulse binary not found. Please build it first with 'go build -o pulse cmd/pulse/main.go'"})

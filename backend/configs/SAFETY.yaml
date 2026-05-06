@@ -22,3 +22,9 @@ rules:
     match:
       commands: ["systemctl"]
       args: ["stop"]
+
+  - name: "Block SQL drop"
+    action: "PREVIEW"
+    match:
+      commands: ["mysql", "psql", "sqlite3"]
+      args: ["drop", "table"]

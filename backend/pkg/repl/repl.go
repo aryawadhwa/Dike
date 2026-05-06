@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 
 	"github.com/aryawadhwa/dike/pkg/ghost"
@@ -41,8 +42,16 @@ func Start() {
 
 	line.SetCtrlCAborts(true)
 
-	fmt.Println("Welcome to Pulse (Dike) - The Safe Command Shell")
-	fmt.Println("Type 'exit' or 'quit' to leave.")
+	fmt.Println(`
+    ____  __  __ __    _____ ______
+   / __ \/ / / / /    / ___// ____/
+  / /_/ / / / / /     \__ \/ __/   
+ / ____/ /_/ / /___  ___/ / /___   
+/_/    \____/_____/ /____/_____/   
+                                   
+      [ SECURE SHELL v2.0 ]
+`)
+	fmt.Println("Welcome to Pulse (Dike) - Type 'exit' or 'quit' to leave.")
 
 	for {
 		input, err := line.Prompt("pulse> ")
@@ -130,8 +139,12 @@ func Start() {
 }
 
 func executeHostCommand(cmdString string) {
-	// Naive execution using bash -c
-	cmd := exec.Command("bash", "-c", cmdString)
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		cmd = exec.Command("cmd", "/c", cmdString)
+	} else {
+		cmd = exec.Command("bash", "-c", cmdString)
+	}
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin

@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/aryawadhwa/dike/pkg/advisor"
+	"github.com/aryawadhwa/dike/pkg/audit"
 	"github.com/aryawadhwa/dike/pkg/diff"
 	"github.com/aryawadhwa/dike/pkg/gatekeeper"
 	"github.com/aryawadhwa/dike/pkg/ghost"
@@ -83,6 +84,19 @@ func HeadlessExecute(cmdStr string, dir string) {
 		out.RiskLevel = "LOW"
 		out.Explanation = "Command is safe and allowed by policy."
 	}
+
+	decisionVal := "REJECTED"
+	if out.RiskLevel == "LOW" {
+		decisionVal = "APPLIED"
+	}
+	
+	// Create a readable summary from the DiffJSON struct
+	diffSummaryStr := "No file changes detected."
+	if len(out.DiffSummary.Created) > 0 || len(out.DiffSummary.Deleted) > 0 {
+		diffSummaryStr = fmt.Sprintf("Files created: %v\nFiles deleted: %v", out.DiffSummary.Created, out.DiffSummary.Deleted)
+	}
+
+	_ = audit.LogDecision(cmdStr, out.RiskLevel, decisionVal, diffSummaryStr)
 
 	printJSON(out)
 }

@@ -3,6 +3,7 @@ package orchestrator
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/aryawadhwa/dike/pkg/advisor"
 	"github.com/aryawadhwa/dike/pkg/audit"
@@ -10,6 +11,7 @@ import (
 	"github.com/aryawadhwa/dike/pkg/gatekeeper"
 	"github.com/aryawadhwa/dike/pkg/ghost"
 	"github.com/aryawadhwa/dike/pkg/policy"
+	"github.com/briandowns/spinner"
 )
 
 // GatekeeperAgent intercepts and evaluates risk
@@ -38,7 +40,14 @@ type GhostAgent struct{}
 
 func (g *GhostAgent) Name() string { return "Ghost Sandbox Agent" }
 func (g *GhostAgent) Execute(ctx *Context) (Result, error) {
+	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond) // Dot spinner
+	s.Suffix = " 🐳 Simulating blast radius in Docker Sandbox [Container: pulse-ghost]..."
+	s.Start()
+
 	output, err := ghost.ExecPreview(ctx.Command)
+
+	s.Stop()
+
 	if err != nil {
 		ctx.Decision = "ERROR"
 		return Result{}, fmt.Errorf("ghost execution failed: %v", err)

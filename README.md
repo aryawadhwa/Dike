@@ -87,7 +87,7 @@ pulse/
 ## 🛣 Roadmap & Phases
 
 - [x] **Phase 0:** Project repository and basic REPL skeleton.
-- [ ] **Phase 1:** Gatekeeper (AST parsing and YAML policy evaluation).
+- [x] **Phase 1:** Gatekeeper (AST parsing and YAML policy evaluation).
 - [ ] **Phase 2:** Ghost Engine (Docker sandbox initialization and execution).
 - [ ] **Phase 3:** Diff Engine (Generating readable filesystem diffs).
 - [ ] **Phase 4:** Host Executor & SQLite Audit Logging.

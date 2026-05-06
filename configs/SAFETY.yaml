@@ -1,0 +1,12 @@
+rules:
+  - name: "Prevent accidental root filesystem modifications"
+    action: DENY
+    match:
+      commands: ["rm"]
+      args: ["-rf", "/", "/*"]
+  
+  - name: "Preview package installations"
+    action: PREVIEW
+    match:
+      commands: ["apt-get", "apt", "brew", "npm"]
+      args: ["install", "remove", "update"]

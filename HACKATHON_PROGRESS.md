@@ -39,6 +39,9 @@ The project is fully executable end-to-end.
 
 **To run the complete system (Backend & Frontend):**
 ```bash
+# Navigate to backend
+cd backend
+
 # Launch the Pulse Backend CLI and the Frontend Web Dashboard simultaneously
 go run cmd/pulse/main.go --web
 ```

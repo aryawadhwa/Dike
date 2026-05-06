@@ -30,8 +30,8 @@ func StartServer(port int) error {
 		json.NewEncoder(w).Encode(stats)
 	})
 
-	// Serve static files from the "static" directory
-	fs := http.FileServer(http.Dir("./static"))
+	// Serve static files from the frontend directory
+	fs := http.FileServer(http.Dir("../frontend"))
 	http.Handle("/", fs)
 
 	addr := fmt.Sprintf(":%d", port)

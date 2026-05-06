@@ -65,13 +65,16 @@ Pulse brings **enterprise-grade safety to the grassroots level**. By providing a
 ## Getting Started
 
 1. **Install Pulse:** Build the Go binary and place it in your path.
-2. **Configure Policy:** Define risky patterns in `configs/SAFETY.yaml`.
+2. **Configure Policy:** Define risky patterns in `backend/configs/SAFETY.yaml`.
 3. **Run:** Execute `pulse` to start the safe, multi-agent intercepted shell.
 
 ```bash
 # Accept the Xcode license if you are on macOS (Required for go-sqlite3)
 sudo xcodebuild -license
 
+# Navigate to the backend directory
+cd backend
+
 # Run the Pulse Multi-Agent framework
-go run cmd/pulse/main.go
+go run cmd/pulse/main.go --web
 ```

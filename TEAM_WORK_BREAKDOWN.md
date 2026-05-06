@@ -9,15 +9,15 @@ To maximize your remaining time and ensure no one is waiting on the other, here 
 
 **1. Sandbox & Docker Polish**
 - Ensure Docker Desktop is running smoothly and Alpine images are pre-pulled (`docker pull alpine`).
-- Test `configs/SAFETY.yaml` by adding 3 distinct rules (`rm -rf`, `drop table`, `kubectl delete`) and verify the Gatekeeper catches them all.
+- Test `backend/configs/SAFETY.yaml` by adding 3 distinct rules (`rm -rf`, `drop table`, `kubectl delete`) and verify the Gatekeeper catches them all.
 
 **2. The Local Llama Fallback**
-- The `Advisor Agent` in `pkg/advisor/advisor.go` is currently configured to use `localLlamaExplain` as the fallback if no `OPENAI_API_KEY` is set. 
+- The `Advisor Agent` in `backend/pkg/advisor/advisor.go` is currently configured to use `localLlamaExplain` as the fallback if no `OPENAI_API_KEY` is set. 
 - *Task:* If you actually have Ollama installed, you can quickly write a real `http.Post` to `http://localhost:11434/api/generate` in that function. If not, ensure the hardcoded fallback text looks perfectly realistic for the judges.
 
 **3. Demo Rehearsal (The Terminal Runner)**
 - You are driving the keyboard during the pitch. Practice the exact sequence:
-  `go run cmd/pulse/main.go --web` -> `ls` (Allow) -> `rm -rf /` (Intercept) -> `e` (Explain) -> `N` (Reject).
+  `cd backend` -> `go run cmd/pulse/main.go --web` -> `ls` (Allow) -> `rm -rf /` (Intercept) -> `e` (Explain) -> `N` (Reject).
 
 ---
 

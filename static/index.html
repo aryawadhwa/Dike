@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulse | Command Audit Timeline</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --border: #334155;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #3b82f6;
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 2rem;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: #1e293b;
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            background: rgba(0,0,0,0.3);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            color: #38bdf8;
+        }
+
+        .badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .badge.critical { background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.5); }
+        .badge.high { background: rgba(245, 158, 11, 0.2); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.5); }
+        .badge.preview { background: rgba(59, 130, 246, 0.2); color: var(--primary); border: 1px solid rgba(59, 130, 246, 0.5); }
+        .badge.allow { background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.5); }
+
+        .decision.rejected { color: var(--danger); font-weight: bold; }
+        .decision.applied { color: var(--success); font-weight: bold; }
+
+        .diff {
+            font-family: monospace;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>🛡️ Pulse <span style="font-weight: 400; color: var(--text-muted)">| SOC2 Audit Timeline</span></h1>
+        <div style="font-size: 0.875rem; color: var(--text-muted)">Live Updates Active</div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value" id="stat-total">-</div>
+            <div class="stat-label">Total Commands</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="stat-applied" style="color: var(--success)">-</div>
+            <div class="stat-label">Applied to Host</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="stat-rejected" style="color: var(--danger)">-</div>
+            <div class="stat-label">Discarded / Blocked</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="stat-critical" style="color: var(--warning)">-</div>
+            <div class="stat-label">Critical Risks Intercepted</div>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Timestamp</th>
+                <th>User</th>
+                <th>Command Executed</th>
+                <th>Risk Level</th>
+                <th>Decision</th>
+                <th>Sandbox Diff Summary</th>
+            </tr>
+        </thead>
+        <tbody id="audit-table">
+            <!-- Populated via JS -->
+        </tbody>
+    </table>
+
+    <script>
+        async function fetchStats() {
+            try {
+                const res = await fetch('/api/stats');
+                const stats = await res.json();
+                document.getElementById('stat-total').innerText = stats.total;
+                document.getElementById('stat-applied').innerText = stats.applied;
+                document.getElementById('stat-rejected').innerText = stats.rejected;
+                document.getElementById('stat-critical').innerText = stats.critical;
+            } catch (e) {
+                console.error("Failed to load stats", e);
+            }
+        }
+
+        async function fetchLogs() {
+            try {
+                const res = await fetch('/api/audit');
+                const logs = await res.json();
+                const tbody = document.getElementById('audit-table');
+                tbody.innerHTML = '';
+
+                logs.forEach(log => {
+                    const tr = document.createElement('tr');
+                    
+                    // Format Risk Badge
+                    let riskBadge = `<span class="badge ${log.risk_level.toLowerCase()}">${log.risk_level}</span>`;
+                    
+                    // Format Decision
+                    let decisionCls = log.decision === 'REJECTED' ? 'rejected' : 'applied';
+                    let decisionHtml = `<span class="decision ${decisionCls}">${log.decision}</span>`;
+
+                    tr.innerHTML = `
+                        <td style="color: var(--text-muted); font-size: 0.875rem">${new Date(log.timestamp).toLocaleString()}</td>
+                        <td>${log.username}</td>
+                        <td><span class="code">${log.command}</span></td>
+                        <td>${riskBadge}</td>
+                        <td>${decisionHtml}</td>
+                        <td class="diff">${log.preview_summary || '-'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (e) {
+                console.error("Failed to load logs", e);
+            }
+        }
+
+        function refreshData() {
+            fetchStats();
+            fetchLogs();
+        }
+
+        // Initial load
+        refreshData();
+        // Poll every 3 seconds
+        setInterval(refreshData, 3000);
+    </script>
+</body>
+</html>

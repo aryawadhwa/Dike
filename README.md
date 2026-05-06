@@ -1,101 +1,77 @@
-# Pulse (Project Dike)
+# Pulse: Autonomous DevSecOps Agents for MSMEs
 
-Pulse is a command interception framework designed to sit between the user and actual host execution. It intercepts terminal commands, evaluates their risk profile against custom policies, and runs risky commands inside a lightweight "ghost sandbox" to present a safe, git-like diff before allowing host execution.
+> **"Pulse: The Multi-Agent Shield That Catches 'Fat-Finger' Outages Before They Happen."**
 
-## 🚀 Core Idea
+Pulse is an autonomous, multi-agent command interception framework designed to sit between human developers and critical infrastructure. It acts as an elite, virtual Site Reliability Engineering (SRE) team that safeguards local businesses by catching destructive terminal commands before they execute.
 
-For "risky" commands:
-1. **Intercept**: Catch the command before execution.
-2. **Sandbox**: Run it in a ghost sandbox (Docker Alpine container).
-3. **Diff**: Compute a diff against the host filesystem.
-4. **Prompt**: Ask the user `[y/N/explain]`. Only apply to the host if approved.
+## The Problem: Cutting the Problem Tree at the Root
+
+As local Indian MSMEs (Micro, Small & Medium Enterprises), D2C brands, and tech startups digitize, they increasingly rely on small teams or freelance developers to manage their infrastructure. However, a single typographical error or a disgruntled employee with server access can bankrupt a company overnight. 
+
+Traditional solutions sell "backup software"—treating the symptom after the damage is done. **Pulse cuts the problem at the root** by preventing the human error from ever reaching the server.
+
+### Real-World Justifications:
+- **KiranaPro (June 2025):** A disgruntled ex-employee in Bengaluru intentionally deleted critical server logs and databases, paralyzing the grocery startup's operations.
+- **NCS Singapore (June 2024):** A fired Indian employee used his former administrator credentials to delete 180 virtual servers, causing massive financial loss.
+- **PocketOS (April 2026):** Even AI makes mistakes—an autonomous coding agent went rogue and deleted a production database while attempting to fix a credential mismatch.
+
+## The Solution: A Multi-Agent Framework
+
+Pulse replaces static, brittle permissions with a collaborative team of specialized AI Agents that intercept, simulate, and audit server activity in real-time. This is not a linear script; it is a decoupled team where distinct agents own distinct responsibilities.
+
+### 1. The Gatekeeper Agent
+The frontline defender. Instead of just blindly executing shell commands, the Gatekeeper Agent uses AST parsing (`tree-sitter`) and policy evaluation to "understand" the intent behind a command. If an outsourced developer types `rm -rf /var/www/html` or `kubectl delete namespace prod`, the Gatekeeper intercepts it.
+
+### 2. The Ghost Agent (Sandbox)
+When the Gatekeeper flags a command as risky, it doesn't just block it—it routes it to the **Ghost Agent**. The Ghost Agent spins up an isolated, pristine replica of the current filesystem (via a Docker Alpine Sandbox) and executes the command *there*. It simulates the exact "blast radius" of the destructive command without touching the live host.
+
+### 3. The Auditor Agent
+The Auditor Agent analyzes the aftermath of the Ghost Agent's simulation. It computes an exact diff of the damage (e.g., "This command will delete 15,000 customer records"). It then logs the incident immutably to a SQLite database (`~/.pulse/audit.db`) and halts execution until explicit approval is given. 
 
 ---
 
-## 🏗 Architecture
+## Agent Architecture
 
 ```mermaid
 flowchart LR
-  A[User types a command in REPL wrapper] --> B[Line editor - raw key capture]
-  B --> C[Parser - tree-sitter-bash AST]
-  C --> D[Gatekeeper - SAFETY.yaml rules]
-  D -->|Safe| E[Host Executor - run on host]
-  D -->|Risky: needs preview| F[Ghost Engine - Docker bind mounts]
-  F --> G[Diff Engine - host vs sandbox]
-  G --> H[Present diff to user y N explain]
-  H -->|Yes| I[Apply to host and log to SQLite]
-  H -->|No| J[Discard sandbox changes]
-  E --> K[Audit Logger - SQLite]
-  I --> K
+  Developer[Developer types command] --> Gatekeeper[Gatekeeper Agent]
+  Gatekeeper -->|Safe Command| Host[Live Host Execution]
+  Gatekeeper -->|Risky Command| Ghost[Ghost Sandbox Agent]
+  
+  Ghost -->|Simulates Execution| Auditor[Auditor Agent]
+  Auditor -->|Generates Blast Radius Diff| Prompt[Owner Approval Prompt]
+  
+  Prompt -->|Rejected| Discard[Discard Sandbox & Log]
+  Prompt -->|Approved| Host
+  
+  Host --> DB[(Immutable SQLite Log)]
+  Discard --> DB
 ```
 
-## 🧩 Components
+## Societal & Emotional Value
 
-### 1. Intercept Layer (REPL Wrapper)
-A custom Go-based shell wrapper (`pulse` CLI) using a line editor (`charmbracelet/bubbletea` or `liner`). Captures input, pipes it to the Gatekeeper, and handles execution on the host if approved.
+A local businessman who has spent 10 years building their inventory system doesn't know what `Drop Table` or `rm -rf` means. They shouldn't lose their livelihood because an entry-level freelancer was tired at 2 AM. 
 
-### 2. Gatekeeper (Parser + Policy Engine)
-- **Parser**: Uses `tree-sitter-bash` to generate an AST and extract command names, paths, arguments, and redirections.
-- **Policy Engine**: Evaluates the parsed AST against `SAFETY.yaml`.
-- Outputs a decision: `ALLOW`, `PREVIEW`, or `DENY`.
-
-### 3. Ghost Engine (Sandbox)
-A long-lived, lightweight Docker Alpine container. When a command needs a `PREVIEW`, Pulse securely `docker exec`s into the container using read-only host bind mounts or temporary file copies to ensure the original host remains pristine.
-
-### 4. Diff Engine
-Compares the filesystem state between the host and the Ghost sandbox after command execution. Generates human-readable, unified diffs showing file creations, modifications, and deletions.
-
-### 5. Audit Logger
-A single-file SQLite database (`~/.pulse/audit.db`) that records every intercepted command, including timestamps, users, risk levels, and the final decision (Applied/Rejected).
-
-### 6. "High-Tier Brain" (LLM Explain)
-*(Optional / Opt-in)* When a user types `[explain]` on a prompted diff, Pulse queries a local LLM (e.g., Ollama Llama-3) with the AST and diff to provide plain-english context on what the command intends to do.
+Pulse brings **enterprise-grade safety to the grassroots level**. By providing an autonomous team of DevOps agents that act as a safety net, we ensure that local businesses can digitize fearlessly. We aren't just protecting servers; we are protecting livelihoods, jobs, and the backbone of the Indian economy.
 
 ---
 
-## 🛠 Tech Stack (v0)
-
+## Tech Stack
 - **Language:** Go (Single binary distribution)
 - **Parser:** `tree-sitter-bash`
-- **Sandbox:** Docker + Bind mounts
-- **Database:** SQLite (`mattn/go-sqlite3`)
-- **CLI/REPL:** `charmbracelet/bubbletea` or `liner`
-- **Policy:** YAML (`SAFETY.yaml`)
+- **Sandbox:** Docker + Dynamic Filesystem Sync
+- **Audit Database:** SQLite (`mattn/go-sqlite3`)
 
----
+## Getting Started
 
-## 📂 Project Structure
+1. **Install Pulse:** Build the Go binary and place it in your path.
+2. **Configure Policy:** Define risky patterns in `configs/SAFETY.yaml`.
+3. **Run:** Execute `pulse` to start the safe, multi-agent intercepted shell.
 
-```text
-pulse/
-  ├── cmd/pulse/          # Main CLI entrypoint
-  ├── pkg/
-  │   ├── repl/           # Line editor and main loop
-  │   ├── gatekeeper/     # Rules, decision logic, and tree-sitter integration
-  │   ├── ghost/          # Docker sandbox management
-  │   ├── diff/           # Host vs Sandbox diff generation
-  │   ├── audit/          # SQLite logger
-  │   └── policy/         # Load SAFETY.yaml
-  ├── configs/            # Configuration files
-  ├── examples/           # Sample SAFETY.yaml policies
-  ├── go.mod
-  └── README.md
+```bash
+# Accept the Xcode license if you are on macOS (Required for go-sqlite3)
+sudo xcodebuild -license
+
+# Run the Pulse Multi-Agent framework
+go run cmd/pulse/main.go
 ```
-
----
-
-## 🛣 Roadmap & Phases
-
-- [x] **Phase 0:** Project repository and basic REPL skeleton.
-- [x] **Phase 1:** Gatekeeper (AST parsing and YAML policy evaluation).
-- [ ] **Phase 2:** Ghost Engine (Docker sandbox initialization and execution).
-- [ ] **Phase 3:** Diff Engine (Generating readable filesystem diffs).
-- [ ] **Phase 4:** Host Executor & SQLite Audit Logging.
-- [ ] **Phase 5:** UX Polish, colored terminal output, and LLM explanation integration.
-
-## 🔮 Future Scope
-
-- Move from Docker to `nsjail` + `OverlayFS` for lower overhead and faster startup.
-- Support per-project `SAFETY.yaml` rules.
-- Optional eBPF-based kernel interception for non-Pulse shells.
-- Web dashboard for viewing audit logs (SOC2 compliance).

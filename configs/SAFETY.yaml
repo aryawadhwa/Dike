@@ -1,12 +1,24 @@
 rules:
-  - name: "Prevent accidental root filesystem modifications"
-    action: DENY
+  - name: "Block destructive rm"
+    action: "PREVIEW"
     match:
       commands: ["rm"]
-      args: ["-rf", "/", "/*"]
-  
-  - name: "Preview package installations"
-    action: PREVIEW
+      args: ["-rf", "-f"]
+
+  - name: "Block kubernetes deletes"
+    action: "PREVIEW"
     match:
-      commands: ["apt-get", "apt", "brew", "npm"]
-      args: ["install", "remove", "update"]
+      commands: ["kubectl"]
+      args: ["delete"]
+
+  - name: "Dangerous dd"
+    action: "PREVIEW"
+    match:
+      commands: ["dd"]
+      args: ["if=/dev"]
+
+  - name: "Stop critical services"
+    action: "PREVIEW"
+    match:
+      commands: ["systemctl"]
+      args: ["stop"]

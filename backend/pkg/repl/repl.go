@@ -42,7 +42,7 @@ func Start() {
 
 	line.SetCtrlCAborts(true)
 
-	fmt.Println(`
+	fmt.Print(`
     ____  __  __ __    _____ ______
    / __ \/ / / / /    / ___// ____/
   / /_/ / / / / /     \__ \/ __/   

@@ -13,7 +13,7 @@ hunter = Agent(
     goal='Find relevant GitHub repositories for analysis',
     backstory='You are an expert at finding high-quality open-source projects. You currently only output a mock repository for safety.',
     verbose=True,
-    llm="gpt-4o-mini"
+    llm="openai/gpt-4o-mini"
 )
 
 # 2. The Cloner Agent
@@ -22,7 +22,7 @@ cloner = Agent(
     goal='Identify the best build and clean commands for a given repository.',
     backstory='You analyze infrastructure files to determine how to build or clean a repo.',
     verbose=True,
-    llm="gpt-4o-mini"
+    llm="openai/gpt-4o-mini"
 )
 
 # 3. The Builder (Risk Assessor)
@@ -32,7 +32,7 @@ builder = Agent(
     backstory='You focus on build safety and configuration integrity. You NEVER run a command without sending it through the Pulse Sandbox first.',
     verbose=True,
     tools=[run_pulse_sandbox], # Give it access to Pulse
-    llm="gpt-4o-mini"
+    llm="openai/gpt-4o-mini"
 )
 
 # 4. The Reporter (Auditor)
@@ -41,7 +41,7 @@ reporter = Agent(
     goal='Compile findings from the Builder into a readable risk report.',
     backstory='You translate technical risks into actionable advice for developers.',
     verbose=True,
-    llm="gpt-4o-mini"
+    llm="openai/gpt-4o-mini"
 )
 
 # Define Tasks
@@ -77,6 +77,8 @@ crew = Crew(
     agents=[hunter, cloner, builder, reporter],
     tasks=[scan_task, clone_task, analyze_task, report_task],
     process=Process.sequential,
+    memory=True,  # Enables the "Sensing" memory layer
+    cache=True,   # Improves performance
     verbose=True
 )
 

@@ -18,21 +18,20 @@ func main() {
 	portFlag := flag.Int("port", 8080, "Port for the web audit dashboard")
 	flag.Parse()
 
+	if err := audit.InitDB(); err != nil {
+		fmt.Printf("Warning: Failed to initialize audit database: %v\n", err)
+	}
+	defer audit.Close()
+
 	if *jsonFlag {
 		if *cmdFlag == "" {
 			fmt.Fprintln(os.Stderr, "Error: --cmd is required when using --json")
 			os.Exit(1)
 		}
-		// Note: Headless mode might not need the DB, but we initialize it anyway if we want logging.
-		// For the CrewAI script, it expects JSON output to stdout.
+		// Headless mode now logs to the DB since InitDB was called above.
 		repl.HeadlessExecute(*cmdFlag, *dirFlag)
 		os.Exit(0)
 	}
-
-	if err := audit.InitDB(); err != nil {
-		fmt.Printf("Warning: Failed to initialize audit database: %v\n", err)
-	}
-	defer audit.Close()
 
 	if *webFlag {
 		go func() {

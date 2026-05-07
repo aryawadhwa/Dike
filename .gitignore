@@ -22,3 +22,8 @@ pulse
 *.db
 audit.db
 .pulse/
+
+# Environment / Python
+.env
+__pycache__/
+*.pyc

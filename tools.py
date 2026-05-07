@@ -1,6 +1,6 @@
 import subprocess
 import json
-from langchain.tools import tool
+from crewai.tools import tool
 
 @tool("PulseSkill")
 def run_pulse_sandbox(command: str, directory: str = ".") -> str:

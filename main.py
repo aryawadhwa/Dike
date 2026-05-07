@@ -37,9 +37,9 @@ builder = Agent(
 
 # 4. The Reporter (Auditor)
 reporter = Agent(
-    role='Security Reporter',
-    goal='Compile findings from the Builder into a readable risk report.',
-    backstory='You translate technical risks into actionable advice for developers.',
+    role='Security Auditor',
+    goal='Compile findings from the Builder into a readable risk report, emphasizing enterprise isolation features.',
+    backstory='You translate technical risks into actionable advice. You focus on confirming that Network Isolation (Air-gapping) and Resource Quotas were successfully enforced during the sandbox run.',
     verbose=True,
     llm="openai/gpt-4o-mini"
 )

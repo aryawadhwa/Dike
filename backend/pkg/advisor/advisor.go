@@ -23,7 +23,8 @@ func localLlamaExplain(command string) string {
 	fallbackMsg := fmt.Sprintf(`🤖 Advisor Agent (Local Llama-3 Fallback):
 • Command Analysis: '%s' is a highly destructive operation targeting core files/state.
 • Technical Risk: Irreversible data loss or immediate termination of critical services.
-• Business Impact: High probability of taking down the application, resulting in downtime and customer trust issues.`, command)
+• Business Impact: High probability of taking down the application, resulting in downtime.
+• Self-Healing: Recommended to use 'git checkout' or 'backup-restore' if executed accidentally.`, command)
 
 	url := "http://localhost:11434/api/generate"
 	prompt := fmt.Sprintf("You are a senior DevOps engineer. Explain in 3 concise bullet points what this command does, what can go wrong technically, and the business impact if run on a production server. Keep it under 60 words. The command is: %s", command)

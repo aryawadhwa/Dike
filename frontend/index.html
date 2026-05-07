@@ -34,7 +34,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
+            margin-bottom: 0.5rem;
             border-bottom: 1px solid var(--border);
             padding-bottom: 1rem;
         }
@@ -53,6 +53,28 @@
             content: ">_";
             color: var(--success);
             font-weight: bold;
+        }
+
+        /* Security HUD */
+        .security-hud {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+        }
+
+        .shield-active {
+            color: var(--success);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .shield-active::before {
+            content: "●";
+            font-size: 0.8rem;
         }
 
         /* Tabs */
@@ -278,19 +300,108 @@
 
         .diff {
             font-size: 0.8rem;
-            white-space: pre-wrap;
             color: var(--text-muted);
+            margin-top: 0.5rem;
         }
-        .diff-added { color: var(--success); }
-        .diff-removed { color: var(--danger); }
+
+        .view-details-btn {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--accent);
+            padding: 0.3rem 0.6rem;
+            font-size: 0.7rem;
+            cursor: pointer;
+            font-family: var(--font-mono);
+            margin-top: 0.5rem;
+            text-transform: uppercase;
+        }
+
+        .view-details-btn:hover {
+            border-color: var(--accent);
+            background: rgba(56, 189, 248, 0.05);
+        }
+
+        .healing-hint {
+            margin-top: 0.75rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .healing-hint span {
+            color: var(--accent);
+            background: #111;
+            padding: 0.1rem 0.4rem;
+            border: 1px solid #222;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 2rem;
+            width: 80%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+
+        .close-btn {
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
 
     </style>
 </head>
 <body>
 
+    <div id="fileModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="stat-label">Affected Files Summary</div>
+                <span class="close-btn" onclick="closeModal()">&times;</span>
+            </div>
+            <div id="modal-body" style="font-size: 0.85rem; line-height: 1.6;"></div>
+        </div>
+    </div>
+
     <div class="header">
         <h1>PULSE SECURE SHELL SYSTEM v2.0</h1>
         <div style="font-size: 0.875rem; color: var(--success)">[ SYSTEM ONLINE - LIVE MONITORING ]</div>
+    </div>
+
+    <div class="security-hud">
+        <div class="shield-active">AIR-GAP: ENABLED</div>
+        <div class="shield-active">RAM QUOTA: 128MB</div>
+        <div class="shield-active">CPU QUOTA: 0.5 CORE</div>
+        <div style="margin-left: auto; color: var(--accent);">SANDBOX: GHOST (HARDENED)</div>
     </div>
 
     <div class="tabs">
@@ -336,7 +447,7 @@
                             <th>Command</th>
                             <th>Risk</th>
                             <th>Decision</th>
-                            <th>Diff Summary</th>
+                            <th>Impact & Recovery</th>
                         </tr>
                     </thead>
                     <tbody id="audit-table">
@@ -365,16 +476,31 @@
 
     <script>
         let chartInstance = null;
+        const diffCache = {}; // Cache for multi-line diff data
 
         function switchTab(tab) {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
             
-            event.target.classList.add('active');
+            if (event && event.target) {
+                event.target.classList.add('active');
+            }
             document.getElementById(`view-${tab}`).classList.add('active');
         }
 
-        // --- Agents Logic ---
+        function showDetails(id) {
+            const modal = document.getElementById('fileModal');
+            const body = document.getElementById('modal-body');
+            const data = diffCache[id] || 'No data available.';
+            body.innerHTML = data.replace(/\n/g, '<br>');
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('fileModal').style.display = 'none';
+        }
+
+        // ... Agents Logic ...
         const agentsData = [
             { id: 'hunter', name: 'Scout Agent', role: 'Repository Hunter', status: 'IDLE', task: 'Monitoring GitHub for new DevOps commits...', progress: 0, logs: [] },
             { id: 'cloner', name: 'Prep Agent', role: 'Environment Prep', status: 'IDLE', task: 'Waiting for repository handle...', progress: 0, logs: [] },
@@ -384,6 +510,7 @@
 
         function renderAgents() {
             const container = document.getElementById('agents-container');
+            if (!container) return;
             container.innerHTML = agentsData.map(agent => `
                 <div class="agent-card" id="card-${agent.id}">
                     <div class="agent-header">
@@ -406,6 +533,7 @@
 
         function updateAgent(id, updates) {
             const agent = agentsData.find(a => a.id === id);
+            if (!agent) return;
             Object.assign(agent, updates);
             if (updates.logs) {
                 const logEl = document.getElementById(`log-${id}`);
@@ -423,8 +551,10 @@
             const log = document.getElementById('orchestrator-log');
             const addLog = (msg) => {
                 const time = new Date().toLocaleTimeString();
-                log.innerHTML += `[${time}] ${msg}<br>`;
-                log.scrollTop = log.scrollHeight;
+                if (log) {
+                    log.innerHTML += `[${time}] ${msg}<br>`;
+                    log.scrollTop = log.scrollHeight;
+                }
             };
 
             setInterval(() => {
@@ -456,7 +586,9 @@
 
         // --- Audit Logic ---
         function updateChart(applied, rejected) {
-            const ctx = document.getElementById('decisionChart').getContext('2d');
+            const ctxEl = document.getElementById('decisionChart');
+            if (!ctxEl) return;
+            const ctx = ctxEl.getContext('2d');
             
             if (chartInstance) {
                 chartInstance.data.datasets[0].data = [applied, rejected];
@@ -492,13 +624,36 @@
             });
         }
 
-        function formatDiff(diffText) {
-            if (!diffText || diffText === '-' || diffText === 'No file changes detected.') {
-                return '<span style="color:#666">No file changes detected.</span>';
+        function generateHealingCommand(command, diffText) {
+            const cleanCmd = (command || '').toLowerCase().trim();
+            if (cleanCmd.includes('rm -rf')) {
+                const target = command.split(/rm -rf/i)[1]?.trim();
+                return `git checkout HEAD -- ${target || '.'}`;
             }
-            return diffText
-                .replace(/Files created:/g, '<span class="diff-added">[+] Files created:</span>')
-                .replace(/Files deleted:/g, '<span class="diff-removed">[-] Files deleted:</span>');
+            if (cleanCmd.includes('drop table')) {
+                return `RESTORE FROM SNAPSHOT;`;
+            }
+            if (cleanCmd.includes('touch')) {
+                const target = command.split(/touch/i)[1]?.trim();
+                return `rm ${target}`;
+            }
+            return 'Check backup logs.';
+        }
+
+        function formatDiff(id, command) {
+            const diffText = diffCache[id];
+            if (!diffText || diffText === '-' || diffText === 'No file changes detected.') {
+                return '<div class="diff" style="color:#666">No file changes detected.</div>';
+            }
+
+            const healing = generateHealingCommand(command, diffText);
+
+            return `
+                <button class="view-details-btn" onclick="showDetails('${id}')">View Affected Files</button>
+                <div class="healing-hint">
+                    RECOVERY: <span>${healing}</span>
+                </div>
+            `;
         }
 
         async function fetchStats() {
@@ -521,11 +676,14 @@
                 const res = await fetch('/api/audit');
                 const logs = await res.json();
                 const tbody = document.getElementById('audit-table');
+                if (!tbody) return;
                 tbody.innerHTML = '';
 
-                logs.forEach(log => {
+                logs.forEach((log, index) => {
                     const tr = document.createElement('tr');
-                    
+                    const diffId = `diff-${log.id || index}`;
+                    diffCache[diffId] = log.preview_summary; // Store in global cache
+
                     let riskBadge = `<span class="badge ${log.risk_level.toLowerCase()}">${log.risk_level}</span>`;
                     let decisionCls = log.decision === 'REJECTED' ? 'rejected' : 'applied';
                     let decisionHtml = `<span class="decision ${decisionCls}">[${log.decision}]</span>`;
@@ -536,7 +694,7 @@
                         <td><span class="code">${log.command}</span></td>
                         <td>${riskBadge}</td>
                         <td>${decisionHtml}</td>
-                        <td class="diff">${formatDiff(log.preview_summary)}</td>
+                        <td>${formatDiff(diffId, log.command)}</td>
                     `;
                     tbody.appendChild(tr);
                 });
@@ -548,6 +706,13 @@
         function refreshData() {
             fetchStats();
             fetchLogs();
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('fileModal');
+            if (event.target == modal) {
+                closeModal();
+            }
         }
 
         renderAgents();

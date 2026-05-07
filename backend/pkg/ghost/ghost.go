@@ -14,9 +14,12 @@ func InitSandbox(cwd string) error {
 	// Cleanup any stale instances
 	_ = Teardown()
 
-	// Run a long-lived alpine container
+	// Run a long-lived hardened alpine container with Zero-Network access and strict quotas
 	cmd := exec.Command("docker", "run", "-d",
 		"--name", containerName,
+		"--network", "none", // Air-gap: No internet access in sandbox
+		"--memory", "128m",   // RAM quota: Prevent memory leaks from crashing host
+		"--cpus", "0.5",      // CPU quota: Prevent fork-bombs
 		"alpine", "tail", "-f", "/dev/null",
 	)
 

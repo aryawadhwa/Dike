@@ -256,10 +256,13 @@ This project was developed with assistance from AI tools and models. We believe 
 
 | Tool/Model | Purpose | Usage in Project |
 |------------|---------|------------------|
+| **WARP Oz Agent** | Terminal-based AI assistance | Primary development environment; used for codebase navigation, file operations, and terminal commands |
 | **GitHub Copilot** | Code completion and refactoring | Assisted in writing Go pipeline code, Python orchestrator, and test cases |
 | **OpenAI GPT-4o** | Architecture design and debugging | Helped design the Railway-Oriented Pipeline pattern and immutable context approach |
 | **Claude 3.5 Sonnet** | Code review and documentation | Reviewed multi-model orchestration implementation, edited README |
-| **GPT-4o-mini** | Runtime model (free tier) | One of the production models used by Hunter, Cloner, Gatekeeper, and Reporter agents |
+| **CrewAI** | Initial agent framework (deprecated) | Used in early prototype (`main.py` v1) - later replaced with custom OpenClaw-style implementation |
+| **LangChain** | Initial LLM integration (deprecated) | Referenced in early `requirements.txt` - removed in favor of native OpenAI API |
+| **GPT-4o-mini** | Runtime model (free tier) | Production model used by Hunter, Cloner, Gatekeeper, and Reporter agents |
 | **LLaMA-3 (via Ollama)** | Runtime model (local/free) | Production model used by Advisor agent for deep risk analysis |
 | **CodeLLaMA (via Ollama)** | Runtime model (local/free) | Production model used by Coder agent for infrastructure analysis |
 
@@ -268,20 +271,37 @@ This project was developed with assistance from AI tools and models. We believe 
 The following components were significantly assisted by AI:
 
 1. **Python Multi-Model Orchestrator** (`main.py`)
-   - AI-assisted: ReAct loop implementation, session-based routing, model switching logic
-   - Human-reviewed: Security boundaries, tool calling patterns, error handling
+   - AI-assisted: ReAct loop implementation, session-based routing, model switching logic, tool calling patterns
+   - Human-reviewed: Security boundaries, error handling, API key management
 
 2. **Go Railway-Oriented Pipeline** (`backend/pkg/pipeline/`)
    - AI-assisted: Immutable context design, pure function agent pattern, pipeline execution flow
    - Human-reviewed: Security-critical decision logic, audit trail implementation
 
-3. **Documentation** (`README.md`, this file)
-   - AI-assisted: Structure, technical explanations, mermaid diagrams
-   - Human-reviewed: Accuracy of technical claims, setup instructions
+3. **Go Agents** (`backend/pkg/agents/`)
+   - AI-assisted: Refactoring from struct-based to pure function approach, agent logic implementation
+   - Human-reviewed: Integration with existing Go backend, SQLite logging, Docker interactions
 
-4. **Agent Implementations** (`backend/pkg/agents/`)
-   - AI-assisted: Refactoring from struct-based to pure function approach
-   - Human-reviewed: Integration with existing Go backend, SQLite logging
+4. **Documentation** (`README.md`)
+   - AI-assisted: Structure, technical explanations, mermaid diagrams, AI disclosure content
+   - Human-reviewed: Accuracy of technical claims, setup instructions, security descriptions
+
+5. **Build & Deployment**
+   - WARP Oz Agent: Git operations, commit messages, push to GitHub
+   - Human-reviewed: All commits verified before push
+
+### Evolution of AI Usage
+
+**Phase 1 (Initial):** CrewAI + LangChain
+- Used CrewAI framework for agent orchestration
+- LangChain for LLM integration
+- Deprecated: Replaced with custom implementation for better control and free-tier compatibility
+
+**Phase 2 (Current):** Native OpenAI API + Custom ReAct
+- Direct OpenAI API calls for cloud models (GPT-4o-mini)
+- Ollama integration for local models (LLaMA-3, CodeLLaMA)
+- Custom ReAct loop implementation (OpenClaw-style)
+- Railway-Oriented Pipeline for Go backend
 
 ### Human Oversight
 
@@ -300,5 +320,6 @@ The production system calls external AI APIs:
 Users can verify AI usage by:
 1. Checking `main.py` for OpenAI client initialization
 2. Checking `backend/pkg/agents/advisor.go` for LLaMA-3 integration
-3. Reviewing the `MODEL_ROUTER` configuration in `main.py` line 20-27
+3. Reviewing the `MODEL_ROUTER` configuration in `main.py` lines 20-27
 4. Examining API call logs in their OpenAI dashboard (if using cloud models)
+5. Checking git history for commit authors and messages

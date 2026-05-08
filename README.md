@@ -245,3 +245,60 @@ go test ./...
 ```
 
 If Docker is unavailable, the Ghost integration test is skipped with a clear reason and the rest of the Go test suite still runs.
+
+---
+
+## AI Disclosure
+
+This project was developed with assistance from AI tools and models. We believe in transparent disclosure of AI usage:
+
+### AI Tools Used in Development
+
+| Tool/Model | Purpose | Usage in Project |
+|------------|---------|------------------|
+| **GitHub Copilot** | Code completion and refactoring | Assisted in writing Go pipeline code, Python orchestrator, and test cases |
+| **OpenAI GPT-4o** | Architecture design and debugging | Helped design the Railway-Oriented Pipeline pattern and immutable context approach |
+| **Claude 3.5 Sonnet** | Code review and documentation | Reviewed multi-model orchestration implementation, edited README |
+| **GPT-4o-mini** | Runtime model (free tier) | One of the production models used by Hunter, Cloner, Gatekeeper, and Reporter agents |
+| **LLaMA-3 (via Ollama)** | Runtime model (local/free) | Production model used by Advisor agent for deep risk analysis |
+| **CodeLLaMA (via Ollama)** | Runtime model (local/free) | Production model used by Coder agent for infrastructure analysis |
+
+### AI-Generated Components
+
+The following components were significantly assisted by AI:
+
+1. **Python Multi-Model Orchestrator** (`main.py`)
+   - AI-assisted: ReAct loop implementation, session-based routing, model switching logic
+   - Human-reviewed: Security boundaries, tool calling patterns, error handling
+
+2. **Go Railway-Oriented Pipeline** (`backend/pkg/pipeline/`)
+   - AI-assisted: Immutable context design, pure function agent pattern, pipeline execution flow
+   - Human-reviewed: Security-critical decision logic, audit trail implementation
+
+3. **Documentation** (`README.md`, this file)
+   - AI-assisted: Structure, technical explanations, mermaid diagrams
+   - Human-reviewed: Accuracy of technical claims, setup instructions
+
+4. **Agent Implementations** (`backend/pkg/agents/`)
+   - AI-assisted: Refactoring from struct-based to pure function approach
+   - Human-reviewed: Integration with existing Go backend, SQLite logging
+
+### Human Oversight
+
+All AI-generated code was:
+- Reviewed for security vulnerabilities (especially the immutable context pattern)
+- Tested for correctness (Go builds, Python syntax validation)
+- Validated against project requirements (multi-model orchestration, free-tier compatibility)
+- Committed with human oversight and understanding
+
+### Runtime AI Usage
+
+The production system calls external AI APIs:
+- **OpenAI API** (GPT-4o-mini): Used during runtime by 4 agents (Hunter, Cloner, Gatekeeper, Reporter)
+- **Ollama** (LLaMA-3, CodeLLaMA): Used during runtime by 2 agents (Advisor, Coder) - completely free, runs locally
+
+Users can verify AI usage by:
+1. Checking `main.py` for OpenAI client initialization
+2. Checking `backend/pkg/agents/advisor.go` for LLaMA-3 integration
+3. Reviewing the `MODEL_ROUTER` configuration in `main.py` line 20-27
+4. Examining API call logs in their OpenAI dashboard (if using cloud models)

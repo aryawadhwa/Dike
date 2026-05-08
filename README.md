@@ -78,3 +78,20 @@ cd backend
 # Run the Pulse Multi-Agent framework
 go run cmd/pulse/main.go --web
 ```
+
+## Test Setup Requirements
+
+Pulse includes integration tests in `backend/pkg/ghost` that execute real Docker commands.
+
+### Prerequisites
+- Docker CLI installed (`docker --version`)
+- Docker daemon running (`docker info`)
+- Go toolchain installed
+
+### Run tests
+```bash
+cd backend
+go test ./...
+```
+
+If Docker is unavailable, the Ghost integration test is skipped with a clear reason and the rest of the Go test suite still runs.

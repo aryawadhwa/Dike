@@ -1,6 +1,7 @@
 package ghost
 
 import (
+	"os/exec"
 	"strings"
 	"testing"
 )
@@ -10,6 +11,7 @@ import (
 // integration tests verifying actual docker commands are more valuable.
 
 func TestGhostLifecycle(t *testing.T) {
+	requireDocker(t)
 	// 1. Init
 	err := InitSandbox("/")
 	if err != nil {
@@ -46,5 +48,17 @@ func TestGhostLifecycle(t *testing.T) {
 	err = Teardown()
 	if err != nil {
 		t.Fatalf("Teardown failed: %v", err)
+	}
+}
+
+func requireDocker(t *testing.T) {
+	t.Helper()
+
+	if _, err := exec.LookPath("docker"); err != nil {
+		t.Skip("skipping ghost integration test: docker CLI not found in PATH")
+	}
+
+	if out, err := exec.Command("docker", "info").CombinedOutput(); err != nil {
+		t.Skipf("skipping ghost integration test: docker daemon unavailable: %v (%s)", err, strings.TrimSpace(string(out)))
 	}
 }

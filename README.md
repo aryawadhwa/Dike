@@ -2,7 +2,9 @@
 
 > **"Pulse: The Multi-Agent, Multi-Model Shield That Catches 'Fat-Finger' Outages Before They Happen."**
 
-### 🎥 [Watch the Demo](https://drive.google.com/drive/folders/1q--B6is4LOp0GhxJUaEMGb8LbgTytJT2?usp=share_link)
+###  [Watch the Demo](https://drive.google.com/drive/folders/1q--B6is4LOp0GhxJUaEMGb8LbgTytJT2?usp=share_link)
+###  [Presentation](https://docs.google.com/presentation/d/15CzowWj0G-EJfSiZCOqCLZ4UfDsPy2wDNwchodkqP-Y/edit?usp=sharing)
+###  [AI Disclosure](https://1drv.ms/w/c/2a1781cda6464a85/IQD76-XEaLeVQJ6raUX0FqHXARot5fxLHu7H5ii2xDw7SjQ?e=bPwNqD)
 
 Pulse is an autonomous, **multi-model AI orchestration framework** designed to sit between human developers and critical infrastructure. It combines **OpenClaw-style session-based agents** with a **Capability-Based Zero Trust** pipeline for secure, intent-aware command execution.
 

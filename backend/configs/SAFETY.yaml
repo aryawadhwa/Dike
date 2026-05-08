@@ -3,7 +3,19 @@ rules:
     action: "PREVIEW"
     match:
       commands: ["rm"]
-      args: ["-rf", "-f"]
+      args: ["-rf", "-f", "-r", "--no-preserve-root"]
+
+  - name: "Block git clean"
+    action: "PREVIEW"
+    match:
+      commands: ["git"]
+      args: ["clean"]
+
+  - name: "Block docker pruning"
+    action: "PREVIEW"
+    match:
+      commands: ["docker"]
+      args: ["prune", "rm", "rmi"]
 
   - name: "Block kubernetes deletes"
     action: "PREVIEW"
@@ -15,16 +27,37 @@ rules:
     action: "PREVIEW"
     match:
       commands: ["dd"]
-      args: ["if=/dev"]
+      args: ["if=/dev", "of=/dev"]
 
   - name: "Stop critical services"
     action: "PREVIEW"
     match:
-      commands: ["systemctl"]
-      args: ["stop"]
+      commands: ["systemctl", "service"]
+      args: ["stop", "disable"]
 
   - name: "Block SQL drop"
     action: "PREVIEW"
     match:
-      commands: ["mysql", "psql", "sqlite3"]
-      args: ["drop", "table"]
+      commands: ["mysql", "psql", "sqlite3", "mongo"]
+      args: ["drop", "delete", "remove"]
+
+  - name: "Sensitive Path Protection"
+    action: "PREVIEW"
+    match:
+      args: ["/etc", "/var", "/root", "/boot", "/sys", "/dev"]
+
+  - name: "Global Force Flag Protection"
+    action: "PREVIEW"
+    match:
+      args: ["--force", "-f", "-rf", "-fdx", "--all", "-R"]
+
+  - name: "Redirect to Device"
+    action: "PREVIEW"
+    match:
+      args: ["> /dev", ">> /dev"]
+
+  - name: "Pipe to Shell (Remote Exec Protection)"
+    action: "PREVIEW"
+    match:
+      commands: ["sh", "bash", "zsh", "python", "python3", "node"]
+      args: ["-c"]

@@ -50,7 +50,8 @@ func Evaluate(cmdString string, pol *policy.Policy) policy.Decision {
 			"env":   true,
 		}
 
-		// Basic unwrap
+		// Basic unwrap and heuristic check
+		isSudo := cmdName == "sudo"
 		if commandWrappers[cmdName] && len(args) > 0 {
 			// Find the first arg that doesn't start with '-' (naive approach for Phase 1)
 			for i, arg := range args {
@@ -60,6 +61,11 @@ func Evaluate(cmdString string, pol *policy.Policy) policy.Decision {
 					break
 				}
 			}
+		}
+
+		// Heuristic: Sudo commands should always be previewed if not denied
+		if isSudo && decision != policy.DecisionDeny {
+			decision = policy.DecisionPreview
 		}
 
 		// Check against rules

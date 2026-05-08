@@ -1,5 +1,5 @@
 """
-Multi-Model ReAct Orchestrator for RepoGuard
+Multi-Model ReAct Orchestrator for Pulse
 OpenClaw-style session-based multi-agent with hybrid models:
 - GPT-4o mini (cloud, essentially free) for general tasks
 - Local Ollama models (completely free) for specialized analysis
@@ -198,8 +198,8 @@ class MultiModelOrchestrator:
         """Execute the full multi-model orchestration pipeline."""
         
         print("\n" + "="*60)
-        print("🛡️ RepoGuard Multi-Model Orchestrator")
-        print("   GPT-4o mini (cloud) + Ollama local models (free)")
+        print("Pulse Multi-Model Orchestrator")
+        print("GPT-4o mini (cloud) + Ollama local models (free)")
         print("="*60)
         
         results = {}

@@ -16,7 +16,8 @@ func main() {
 	}
 
 	for _, cmd := range commands {
-		decision := gatekeeper.Evaluate(cmd, nil)
-		fmt.Printf("Command: %s\nDecision: %s\n\n", cmd, decision)
+		decision, cap := gatekeeper.Evaluate(cmd, nil)
+		fmt.Printf("Command: %s\nDecision: %s\nCapability: %s\n\n", cmd, decision, cap)
 	}
+
 }

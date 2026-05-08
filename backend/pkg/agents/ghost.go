@@ -22,11 +22,12 @@ func Ghost() pipeline.Agent {
 			return ctx, err
 		}
 
-		// Execute in sandbox
-		stdout, err := ghost.ExecPreview(ctx.RawCommand)
+		// Execute in sandbox with specific strategy
+		stdout, err := ghost.ExecPreview(ctx.RawCommand, ctx.SandboxStrategy)
 		if err != nil {
 			return ctx, err
 		}
+
 
 		// Compute filesystem diff
 		diffSummary, err := diff.ComputeDiff("pulse-ghost")
@@ -70,10 +71,11 @@ func GhostWithDir(dir string) pipeline.Agent {
 			return ctx, err
 		}
 
-		stdout, err := ghost.ExecPreview(ctx.RawCommand)
+		stdout, err := ghost.ExecPreview(ctx.RawCommand, ctx.SandboxStrategy)
 		if err != nil {
 			return ctx, err
 		}
+
 
 		result := pipeline.SandboxResult{
 			ExitCode: 0,

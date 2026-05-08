@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+
+	"github.com/aryawadhwa/dike/pkg/pipeline"
 )
 
 const containerName = "pulse-ghost"
@@ -15,11 +17,12 @@ func InitSandbox(cwd string) error {
 	_ = Teardown()
 
 	// Run a long-lived hardened alpine container with Zero-Network access and strict quotas
+	// Default to no network. NetworkIso strategy will re-enable if allowed.
 	cmd := exec.Command("docker", "run", "-d",
 		"--name", containerName,
-		"--network", "none", // Air-gap: No internet access in sandbox
-		"--memory", "128m",   // RAM quota: Prevent memory leaks from crashing host
-		"--cpus", "0.5",      // CPU quota: Prevent fork-bombs
+		"--network", "none",
+		"--memory", "128m",
+		"--cpus", "0.5",
 		"alpine", "tail", "-f", "/dev/null",
 	)
 
@@ -30,12 +33,15 @@ func InitSandbox(cwd string) error {
 		return fmt.Errorf("failed to start ghost container: %w, stderr: %s", err, stderr.String())
 	}
 
+	// Ensure fakeroot is installed for StrategyFakeRoot
+	_ = exec.Command("docker", "exec", containerName, "apk", "add", "fakeroot").Run()
+
 	return nil
 }
 
 // ExecPreview copies the current directory into the ghost sandbox and executes a command.
-// It returns the combined output.
-func ExecPreview(command string) (string, error) {
+// It uses the provided SandboxStrategy to configure the environment.
+func ExecPreview(command string, strategy pipeline.SandboxStrategy) (string, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return "", fmt.Errorf("failed to get cwd: %w", err)
@@ -46,14 +52,19 @@ func ExecPreview(command string) (string, error) {
 	_ = exec.Command("docker", "exec", containerName, "mkdir", "-p", "/workspace").Run()
 
 	// Copy the current host directory into the container's /workspace
-	// Note: docker cp <src>/. <dest> copies contents of src into dest.
 	cpCmd := exec.Command("docker", "cp", cwd+"/.", containerName+":/workspace/")
 	if err := cpCmd.Run(); err != nil {
 		return "", fmt.Errorf("failed to copy host directory to ghost sandbox: %w", err)
 	}
 
+	// Apply Strategy-specific modifications
+	actualCommand := command
+	if strategy == pipeline.StrategyFakeRoot {
+		actualCommand = "fakeroot " + command
+	}
+
 	// We run the command via sh -c to handle pipelines and basic shell semantics
-	cmd := exec.Command("docker", "exec", "-w", "/workspace", containerName, "sh", "-c", command)
+	cmd := exec.Command("docker", "exec", "-w", "/workspace", containerName, "sh", "-c", actualCommand)
 
 	// Combine stdout and stderr for the preview
 	var out bytes.Buffer
@@ -63,7 +74,6 @@ func ExecPreview(command string) (string, error) {
 	err = cmd.Run()
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
-			// The command ran but failed
 			return fmt.Sprintf("[Exit Code %d]\n%s", exitError.ExitCode(), out.String()), nil
 		}
 		return "", fmt.Errorf("failed to execute in ghost: %w\n%s", err, out.String())
@@ -71,6 +81,7 @@ func ExecPreview(command string) (string, error) {
 
 	return out.String(), nil
 }
+
 
 // Teardown forcefully removes the ghost sandbox.
 func Teardown() error {

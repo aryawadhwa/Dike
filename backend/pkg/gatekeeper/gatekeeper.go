@@ -8,11 +8,11 @@ import (
 )
 
 // Evaluate parses the command and checks it against the Capability model.
-func Evaluate(cmdString string, pol *policy.Policy) policy.Decision {
+func Evaluate(cmdString string, pol *policy.Policy) (policy.Decision, policy.Capability) {
 	parser := syntax.NewParser()
 	f, err := parser.Parse(strings.NewReader(cmdString), "")
 	if err != nil {
-		return policy.DecisionDeny // Deny malformed commands
+		return policy.DecisionDeny, "" // Deny malformed commands
 	}
 
 	cap, found := EvaluateCapabilities(f)
@@ -22,48 +22,46 @@ func Evaluate(cmdString string, pol *policy.Policy) policy.Decision {
 		for _, rule := range pol.Deny {
 			for _, badCmd := range rule.Commands {
 				if strings.Contains(cmdString, badCmd) {
-					return policy.DecisionDeny
+					return policy.DecisionDeny, cap
 				}
 			}
 		}
 	}
 
-
 	if !found {
-		return policy.DecisionAllow // Default to allow for non-destructive capabilities
+		return policy.DecisionAllow, "" // Default to allow for non-destructive capabilities
 	}
 
 	// 2. Check policy for capability-specific actions
 	if pol != nil {
 		for _, rule := range pol.Deny {
 			if policy.Capability(rule.Capability) == cap {
-				return policy.DecisionDeny
+				return policy.DecisionDeny, cap
 			}
 		}
 		for _, rule := range pol.Allow {
 			if policy.Capability(rule.Capability) == cap {
-				return policy.DecisionAllow
+				return policy.DecisionAllow, cap
 			}
 		}
 		// If capability found but not explicitly allowed/denied, use default_action
 		if pol.DefaultAction != "" {
-			return pol.DefaultAction
+			return pol.DefaultAction, cap
 		}
+
 	}
 
 	// Fallback for default setup
 	switch cap {
 	case policy.CapMassDelete, policy.CapSystemModify, policy.CapExecArbitrary:
-		return policy.DecisionPreview
+		return policy.DecisionPreview, cap
 	default:
-		return policy.DecisionAllow
+		return policy.DecisionAllow, cap
 	}
 }
 
-
 // EvaluateCapabilities traverses the AST to find the semantic intent
 func EvaluateCapabilities(node syntax.Node) (policy.Capability, bool) {
-
 	var cmd *syntax.CallExpr
 	syntax.Walk(node, func(n syntax.Node) bool {
 		if c, ok := n.(*syntax.CallExpr); ok {

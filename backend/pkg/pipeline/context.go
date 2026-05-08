@@ -31,6 +31,15 @@ type SandboxResult struct {
 	FileChanges []FileChange
 }
 
+// SandboxStrategy represents the execution mode for the ghost engine
+type SandboxStrategy string
+
+const (
+	StrategySnapshot   SandboxStrategy = "SNAPSHOT"   // For MASS_DELETE
+	StrategyFakeRoot   SandboxStrategy = "FAKE_ROOT"  // For SYSTEM_MODIFY
+	StrategyNetworkIso SandboxStrategy = "NET_ISO"    // For EXEC_ARBITRARY
+)
+
 // Context is strictly immutable. Agents return new Contexts, never modify existing ones.
 // This enables auditability - at any point we can serialize the full state.
 type Context struct {
@@ -39,6 +48,10 @@ type Context struct {
 	Policy     *policy.Policy
 	SessionID  string
 	Timestamp  time.Time
+
+	// The Zero Trust metadata
+	EvaluatedCapability policy.Capability
+	SandboxStrategy     SandboxStrategy
 
 	// Parsed state (populated by parser agent)
 	ParsedCommand string
@@ -53,6 +66,7 @@ type Context struct {
 	// Audit trail (append-only)
 	AgentTrail []AgentStep
 }
+
 
 // AgentStep records an agent's execution for auditability
 type AgentStep struct {
@@ -92,6 +106,19 @@ func (c Context) WithSandboxResult(result SandboxResult) Context {
 	c.Sandbox = result
 	return c
 }
+
+// WithCapability returns a new Context with evaluated capability
+func (c Context) WithCapability(cap policy.Capability) Context {
+	c.EvaluatedCapability = cap
+	return c
+}
+
+// WithSandboxStrategy returns a new Context with sandbox strategy
+func (c Context) WithSandboxStrategy(s SandboxStrategy) Context {
+	c.SandboxStrategy = s
+	return c
+}
+
 
 // WithAgentStep appends an audit step and returns new Context
 func (c Context) WithAgentStep(step AgentStep) Context {

@@ -83,6 +83,7 @@ func Start() {
 		ctx := pipeline.NewContext(input, pol)
 		finalCtx, err := pipeline.Execute(ctx, pulsePipeline...)
 
+
 		if err != nil {
 			if pipeline.IsDenyError(err) {
 				fmt.Printf("❌ %v\n", err)

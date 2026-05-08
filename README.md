@@ -124,36 +124,46 @@ flowchart TD
 ### 3. Decision Resolution (The Commitment Phase)
 - **Interventionist Prompts**: Halts any command affecting critical paths, requiring explicit approval from the operator.
 - **Immutable Audit Logs**: Finalizes interactions with an entry in the SQLite log for transparent review of interventions.
-│                    ┌────────────────┼────────────────┐               │
-│                    ▼                ▼                ▼               │
-│              ┌──────────┐    ┌──────────┐     ┌──────────┐          │
-│              │Advisor   │    │ Coder    │     │ Ghost    │          │
-│              │LLaMA-3   │    │CodeLLaMA │     │ Sandbox  │          │
-│              │(Local)    │    │(Local)   │     │(Go API)  │          │
-│              └──────────┘    └──────────┘     └────┬─────┘          │
-└─────────────────────────────────────────────────────┼───────────────┘
-                                                      │
-                              ┌───────────────────────┼───────────────┐
-                              ▼                       ▼               │
-                    ┌─────────────────┐    ┌──────────────────┐       │
-                    │  RAILWAY-ORIENTED PIPELINE (Go)          │       │
-                    │  Immutable Context → Pure Functions    │       │
-                    │  ┌─────────┐ → ┌────────┐ → ┌────────┐ │       │
-                    │  │Gatekeeper│ → │ Ghost  │ → │Auditor │ │       │
-                    │  │  Agent   │   │ Agent  │   │ Agent  │ │       │
-                    │  └────┬────┘   └────┬───┘   └───┬────┘ │       │
-                    │       │             │            │       │       │
-                    │   ALLOW│        PREVIEW│     DENY│      │       │
-                    │       ▼             ▼            ▼       │       │
-                    │  [Execute]    [Sandbox]    [Reject]     │       │
-                    └──────────────────────────────────────────┘       │
-                              │                                       │
-                              ▼                                       │
-                    ┌──────────────────┐                            │
-                    │ SQLite Audit Log  │                            │
-                    │ ~/.pulse/audit.db │                            │
-                    └──────────────────┘                            │
-                                                                     │
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    MULTI-MODEL ORCHESTRATOR                          │
+│                         (Python + OpenAI/Ollama)                    │
+│  ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐            │
+│  │ Hunter  │ → │ Cloner  │ → │Gatekeeper│ → │Reporter │            │
+│  │GPT-4o-m │   │GPT-4o-m │   │GPT-4o-m+ │   │GPT-4o-m │            │
+│  └─────────┘   └─────────┘   └────┬────┘   └─────────┘            │
+│                                   │                                 │
+│                    ┌──────────────┼──────────────┐                  │
+│                    ▼              ▼              ▼                  │
+│              ┌──────────┐    ┌──────────┐   ┌──────────┐            │
+│              │Advisor   │    │ Coder    │   │ Ghost    │            │
+│              │LLaMA-3   │    │CodeLLaMA │   │ Sandbox  │            │
+│              │(Local)   │    │(Local)   │   │(Go API)  │            │
+│              └──────────┘    └──────────┘   └────┬─────┘            │
+└──────────────────────────────────────────────────┼──────────────────┘
+                                                   │
+                            ┌──────────────────────┼──────────────────┐
+                            ▼                      ▼                  │
+                  ┌──────────────────────────────────────────┐        │
+                  │      RAILWAY-ORIENTED PIPELINE (Go)      │        │
+                  │     Immutable Context → Pure Functions    │        │
+                  │  ┌─────────┐ → ┌─────────┐ → ┌─────────┐ │        │
+                  │  │Gatekeeper│ → │  Ghost  │ → │ Auditor │ │        │
+                  │  │  Agent   │   │  Agent  │   │  Agent  │ │        │
+                  │  └────┬────┘   └────┬────┘   └────┬────┘ │        │
+                  │       │             │             │      │        │
+                  │  ALLOW│      PREVIEW│         DENY│      │        │
+                  │       ▼             ▼             ▼      │        │
+                  │   [Execute]     [Sandbox]     [Reject]   │        │
+                  └─────────────────────┬────────────────────┘        │
+                                        │                             │
+                                        ▼                             │
+                              ┌──────────────────┐                    │
+                              │ SQLite Audit Log │                    │
+                              │ ~/.pulse/audit.db│                    │
+                              └──────────────────┘                    │
+                                                                      │
 ```
 
 ## for whom?

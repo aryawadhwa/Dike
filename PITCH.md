@@ -59,6 +59,20 @@ Pulse intercepts destructive intent at the terminal level **before it reaches th
 
 ---
 
+---
+
+## Prototype Status: Live Capabilities
+Pulse is not a concept—it's a functioning DevSecOps platform. The current prototype implements:
+*   **AST-Aware Evaluator**: Live shell command parsing via `mvdan.cc/sh` to identify `MASS_DELETE`, `SYSTEM_MODIFY`, and `EXEC_ARBITRARY` capabilities.
+*   **Ghost Sandbox Engine**: Docker-based Alpine containers with **Capability-Driven Strategies** (Snapshot, FakeRoot, Network Isolation).
+*   **Railway-Oriented Pipeline**: A Go-native backend using immutable context and pure-function agents for deterministic security.
+*   **Multi-Model Orchestrator**: A Python-native ReAct engine integrating **GPT-4o-mini** with local **LLaMA-3/CodeLLaMA** via the Ollama API.
+*   **Immutable Audit Logs**: Real-time incident recording to a **SQLite** database for transparent forensics.
+*   **Interactive Dashboard**: A modernized **Slate & Indigo** dashboard providing real-time visualization of the security pipeline and file diffs.
+
+---
+
 ## Scale Potential
 *   **Distributed Security Mesh**: Scaling from single-node protection to a mesh that synchronizes policies across thousands of cloud instances.
 *   **Edge-Device Security**: On-device security for IoT and industrial gateways via optimized local inference.
+

@@ -92,38 +92,38 @@ flowchart TD
 - **Model Routing:** Different models for different cognitive tasks
 - **Native Tool Calling:** OpenAI function calling directly (no frameworks)
 
-### Layer 2: Go Zero-Trust Pipeline (Railway-Oriented)
+## What we built: The Pulse Platform 
 
-```mermaid
-flowchart LR
-  subgraph "Go Layer - Capability Pipeline"
-    Input[Command Input] -->|AST Parse| GK[Gatekeeper Agent]
-    GK -->|Intent: MASS_DELETE| Ghost[Ghost Engine]
-    GK -->|Decision: ALLOW| Host[Host Execution]
-    Ghost -->|Strategy: SNAPSHOT| Sandbox[Docker Sandbox]
-    Sandbox -->|Result| Audit[Auditor Agent]
-    Audit -->|Immutable Log| DB[(SQLite)]
-    Host --> Audit
-  end
-```
+- **Native Multi-Model ReAct Orchestrator**: A custom Python engine managing agentic reasoning via direct OpenAI and Ollama APIs, bypassing restrictive frameworks for maximum control.
+- **Go Railway Execution Engine**: A high-performance Go backend that handles shell AST parsing (via `mvdan.cc/sh`) and sandbox orchestration to provide a deterministic safety layer.
+- **Capability-Based Zero Trust Controller**: A cross-language system bridging high-level AI reasoning with low-level kernel and filesystem security to create unified infrastructure guardrails.
 
-**Key Features:**
-- **Zero Trust Modeling:** Intent-based capability detection over raw string matching.
-- **Railway-Oriented:** Success flows forward; security violations branch to the error track.
-- **Audit Trail:** Every agent step recorded with input/output snapshots.
-- **Pure Functions:** Agents are `func(Context) (Context, error)` - testable and composable.
+---
 
-### Full System Flow
+## Technical Core: Live Prototype Features
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    MULTI-MODEL ORCHESTRATOR                          │
-│                         (Python + OpenAI/Ollama)                    │
-│  ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐            │
-│  │ Hunter  │ → │ Cloner  │ → │Gatekeeper│ → │Reporter │            │
-│  │GPT-4o-m │   │GPT-4o-m │   │GPT-4o-m+ │   │GPT-4o-m │            │
-│  └─────────┘   └─────────┘   └────┬────┘   └─────────┘            │
-│                                     │                               │
+- **Railway-Oriented Functional Pipeline**: A Go-based functional pattern where command execution flows through "pure" agents, treating security violations as first-class data on a separate track.
+- **AST-Aware Intent Detection**: Utilizes the `mvdan.cc/sh` parser to perform Abstract Syntax Tree analysis, detecting malicious patterns and destructive capabilities before they reach the host.
+- **Ghost Engine v2.0**: Leverages Docker Alpine containers to spin up ephemeral "Ghost States" with capability-driven strategies (**Snapshot, FakeRoot, NetworkIso**).
+- **Hybrid Intelligence Architecture**: Intelligently dispatches orchestration to GPT-4o-mini while offloading deep risk assessments to local Llama-3 and CodeLlama.
+- **Immutable State Snapshots**: Binds every security decision to a unique, immutable context, creating a technically verifiable and unalterable audit trail in **SQLite**.
+
+---
+
+## User Interaction (The Pulse Workflow)
+
+### 1. Unified Command Entry (The Proposing Phase)
+- **Contextual Terminal Input**: Commands are wrapped in immutable session contexts instead of executing immediately.
+- **High-Velocity Fallback**: Provides "Fast-Path" execution for low-risk commands, ensuring security never slows down productivity.
+
+### 2. The Visual Pulse Audit (The Observation Phase)
+- **Agentic Pipeline Status**: Real-time feedback through Gatekeeper, Ghost, and Auditor agents for a transparent experience.
+- **Ghost-State Visualization**: Flagged commands trigger a "Simulation Preview," showing filesystem changes before they hit the host.
+- **Deep Technical Advisory**: Advisor Agent (Llama-3) provides risk breakdowns and recommended self-healing steps.
+
+### 3. Decision Resolution (The Commitment Phase)
+- **Interventionist Prompts**: Halts any command affecting critical paths, requiring explicit approval from the operator.
+- **Immutable Audit Logs**: Finalizes interactions with an entry in the SQLite log for transparent review of interventions.
 │                    ┌────────────────┼────────────────┐               │
 │                    ▼                ▼                ▼               │
 │              ┌──────────┐    ┌──────────┐     ┌──────────┐          │

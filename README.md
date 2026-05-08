@@ -2,7 +2,7 @@
 
 > **"Pulse: The Multi-Agent, Multi-Model Shield That Catches 'Fat-Finger' Outages Before They Happen."**
 
-Pulse is an autonomous, **multi-model AI orchestration framework** designed to sit between human developers and critical infrastructure. It combines **OpenClaw-style session-based agents** with a **Railway-Oriented Pipeline (ROP)** for secure, immutable command execution.
+Pulse is an autonomous, **multi-model AI orchestration framework** designed to sit between human developers and critical infrastructure. It combines **OpenClaw-style session-based agents** with a **Capability-Based Zero Trust** pipeline for secure, intent-aware command execution.
 
 ## The Problem: Cutting the Problem Tree at the Root
 
@@ -15,9 +15,9 @@ Traditional solutions sell "backup software"—treating the symptom after the da
 - **NCS Singapore (June 2024):** A fired Indian employee used his former administrator credentials to delete 180 virtual servers, causing massive financial loss.
 - **PocketOS (April 2026):** Even AI makes mistakes—an autonomous coding agent went rogue and deleted a production database while attempting to fix a credential mismatch.
 
-## The Solution: Multi-Model AI Orchestration
+## The Solution: Capability-Based AI Orchestration
 
-Pulse replaces static permissions with a **collaborative team of specialized AI Agents**, each powered by different LLM models optimized for their role. This is **not CrewAI or LangChain**—it's a custom **OpenClaw-style** architecture using pure ReAct loops and session-based routing.
+Pulse replaces static permissions with a **collaborative team of specialized AI Agents**, utilizing a **Capability-Based Zero Trust** model to evaluate command intent rather than simple string matching.
 
 ### Multi-Model Architecture
 
@@ -25,18 +25,21 @@ Pulse replaces static permissions with a **collaborative team of specialized AI 
 |-------|-------|------|------|
 | **Hunter** | GPT-4o-mini | OpenAI (free tier) | Discovers repositories |
 | **Cloner** | GPT-4o-mini | OpenAI (free tier) | Analyzes build configs |
-| **Gatekeeper** | GPT-4o-mini | OpenAI + Tools | Evaluates safety with sandbox tool |
+| **Gatekeeper** | GPT-4o-mini | OpenAI + Tools | Evaluates intent with Capability Model |
 | **Advisor** | LLaMA-3 | Ollama (local/free) | Deep risk explanations |
 | **Coder** | CodeLLaMA | Ollama (local/free) | Code infrastructure analysis |
 | **Reporter** | GPT-4o-mini | OpenAI (free tier) | Executive summaries |
 
 **Cost:** ~$0 (GPT-4o-mini free tier + local Ollama models)
 
-### 1. The Gatekeeper Agent
-The frontline defender. Instead of just blindly executing shell commands, the Gatekeeper Agent uses AST parsing (`tree-sitter`) and policy evaluation to "understand" the intent behind a command. If an outsourced developer types `rm -rf /var/www/html` or `kubectl delete namespace prod`, the Gatekeeper intercepts it.
+### 1. The Gatekeeper Agent (Capability Engine)
+The frontline defender. Instead of just blindly executing shell commands or checking a blocklist, the Gatekeeper uses **AST-aware semantic analysis** to understand the command's **Capability**. It distinguishes between safe operations (like `tar -xzf`) and destructive ones (like `git clean -fdx`) by modeling their intent as `MASS_DELETE`, `SYSTEM_MODIFY`, or `EXEC_ARBITRARY`.
 
-### 2. The Ghost Agent (Sandbox)
-When the Gatekeeper flags a command as risky, it doesn't just block it—it routes it to the **Ghost Agent**. The Ghost Agent spins up an isolated, pristine replica of the current filesystem (via a Docker Alpine Sandbox) and executes the command *there*. It simulates the exact "blast radius" of the destructive command without touching the live host.
+### 2. The Ghost Agent (Sandbox v2.0)
+When a command is flagged as risky, the Ghost Engine chooses a **Sandbox Strategy** tailored to its intent:
+- **SNAPSHOT**: Uses OverlayFS-style snapshots to capture `MASS_DELETE` operations, allowing users to see exactly what would be lost.
+- **FAKEROOT**: Simulates root privileges for `SYSTEM_MODIFY` tasks like `chmod` or `chown`.
+- **NETWORK_ISO**: Provides a controlled environment for `EXEC_ARBITRARY` tasks (e.g., `curl | bash`) with strict outbound rules.
 
 ### 3. The Auditor Agent
 The Auditor Agent analyzes the aftermath of the Ghost Agent's simulation. It computes an exact diff of the damage (e.g., "This command will delete 15,000 customer records"). It then logs the incident immutably to a SQLite database (`~/.pulse/audit.db`) and halts execution until explicit approval is given. 
@@ -52,7 +55,7 @@ flowchart TD
     subgraph "Python Layer - Multi-Model ReAct"
         A[Hunter<br/>GPT-4o-mini] -->|Repo URL| B[Cloner<br/>GPT-4o-mini]
         B -->|Command| C[Gatekeeper<br/>GPT-4o-mini + Tools]
-        C -->|Pulse Tool| D[Go Backend]
+        C -->|Capability Eval| D[Go Backend]
         C -->|High Risk| E[Advisor<br/>LLaMA-3 Local]
         C -->|Code Analysis| F[Coder<br/>CodeLLaMA Local]
         E --> G[Reporter<br/>GPT-4o-mini]
@@ -66,26 +69,26 @@ flowchart TD
 - **Model Routing:** Different models for different cognitive tasks
 - **Native Tool Calling:** OpenAI function calling directly (no frameworks)
 
-### Layer 2: Go Railway-Oriented Pipeline (ROP)
+### Layer 2: Go Zero-Trust Pipeline (Railway-Oriented)
 
 ```mermaid
 flowchart LR
-  subgraph "Go Layer - Immutable Pipeline"
-    Input[Command Input] -->|NewContext| GK[Gatekeeper Agent]
+  subgraph "Go Layer - Capability Pipeline"
+    Input[Command Input] -->|AST Parse| GK[Gatekeeper Agent]
+    GK -->|Intent: MASS_DELETE| Ghost[Ghost Engine]
     GK -->|Decision: ALLOW| Host[Host Execution]
-    GK -->|Decision: PREVIEW| Ghost[Ghost Sandbox]
-    GK -->|Decision: DENY| Deny[Reject & Audit]
-    Ghost -->|SandboxResult| Audit[Auditor Agent]
+    Ghost -->|Strategy: SNAPSHOT| Sandbox[Docker Sandbox]
+    Sandbox -->|Result| Audit[Auditor Agent]
     Audit -->|Immutable Log| DB[(SQLite)]
     Host --> Audit
   end
 ```
 
 **Key Features:**
-- **Immutable Context:** `ctx.WithDecision()` returns new context, never mutates
-- **Railway-Oriented:** Errors branch to error track, success flows through
-- **Audit Trail:** Every agent step recorded with input/output snapshots
-- **Pure Functions:** Agents are `func(Context) (Context, error)` - testable, composable
+- **Zero Trust Modeling:** Intent-based capability detection over raw string matching.
+- **Railway-Oriented:** Success flows forward; security violations branch to the error track.
+- **Audit Trail:** Every agent step recorded with input/output snapshots.
+- **Pure Functions:** Agents are `func(Context) (Context, error)` - testable and composable.
 
 ### Full System Flow
 

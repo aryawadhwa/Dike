@@ -130,7 +130,7 @@ flowchart LR
                                                                      │
 ```
 
-## Societal & Emotional Value
+## for whom?
 
 A local businessman who has spent 10 years building their inventory system doesn't know what `Drop Table` or `rm -rf` means. They shouldn't lose their livelihood because an entry-level freelancer was tired at 2 AM. 
 

@@ -2,7 +2,10 @@
 
 > **"Pulse: The Multi-Agent, Multi-Model Shield That Catches 'Fat-Finger' Outages Before They Happen."**
 
+### 🎥 [Watch the Demo](https://drive.google.com/drive/folders/1q--B6is4LOp0GhxJUaEMGb8LbgTytJT2?usp=share_link)
+
 Pulse is an autonomous, **multi-model AI orchestration framework** designed to sit between human developers and critical infrastructure. It combines **OpenClaw-style session-based agents** with a **Capability-Based Zero Trust** pipeline for secure, intent-aware command execution.
+
 
 ## The Problem: Cutting the Problem Tree at the Root
 
@@ -11,6 +14,7 @@ As local Indian MSMEs (Micro, Small & Medium Enterprises), D2C brands, and tech 
 Traditional solutions sell "backup software"—treating the symptom after the damage is done. **Pulse cuts the problem at the root** by preventing the human error from ever reaching the server.
 
 ### Real-World Justifications:
+
 - **KiranaPro (June 2025):** A disgruntled ex-employee in Bengaluru intentionally deleted critical server logs and databases, paralyzing the grocery startup's operations.
 - **NCS Singapore (June 2024):** A fired Indian employee used his former administrator credentials to delete 180 virtual servers, causing massive financial loss.
 - **PocketOS (April 2026):** Even AI makes mistakes—an autonomous coding agent went rogue and deleted a production database while attempting to fix a credential mismatch.
@@ -21,27 +25,31 @@ Pulse replaces static permissions with a **collaborative team of specialized AI 
 
 ### Multi-Model Architecture
 
-| Agent | Model | Type | Role |
-|-------|-------|------|------|
-| **Hunter** | GPT-4o-mini | OpenAI (free tier) | Discovers repositories |
-| **Cloner** | GPT-4o-mini | OpenAI (free tier) | Analyzes build configs |
-| **Gatekeeper** | GPT-4o-mini | OpenAI + Tools | Evaluates intent with Capability Model |
-| **Advisor** | LLaMA-3 | Ollama (local/free) | Deep risk explanations |
-| **Coder** | CodeLLaMA | Ollama (local/free) | Code infrastructure analysis |
-| **Reporter** | GPT-4o-mini | OpenAI (free tier) | Executive summaries |
+| Agent          | Model       | Type                | Role                                   |
+| -------------- | ----------- | ------------------- | -------------------------------------- |
+| **Hunter**     | GPT-4o-mini | OpenAI (free tier)  | Discovers repositories                 |
+| **Cloner**     | GPT-4o-mini | OpenAI (free tier)  | Analyzes build configs                 |
+| **Gatekeeper** | GPT-4o-mini | OpenAI + Tools      | Evaluates intent with Capability Model |
+| **Advisor**    | LLaMA-3     | Ollama (local/free) | Deep risk explanations                 |
+| **Coder**      | CodeLLaMA   | Ollama (local/free) | Code infrastructure analysis           |
+| **Reporter**   | GPT-4o-mini | OpenAI (free tier)  | Executive summaries                    |
 
 **Cost:** ~$0 (GPT-4o-mini free tier + local Ollama models)
 
 ### 1. The Gatekeeper Agent (The Moment of Intent Interception)
+
 The frontline defender. Instead of just blindly executing shell commands or checking a blocklist, the Gatekeeper uses **AST-aware semantic analysis** to understand the command's **Capability**. It detects destructive patterns like recursive deletion or credential exposure instantly, determining if a command is safe or requires simulation.
 
 ### 2. The Ghost Agent (The Ghost Moat)
+
 Pulse replaces "AI Hallucinations" with "Simulated Reality." When a command is flagged as risky, the Ghost Engine chooses a **Sandbox Strategy** tailored to its intent:
+
 - **SNAPSHOT**: Uses OverlayFS-style snapshots to capture `MASS_DELETE` operations, revealing the exact "Blast Radius" of a command before it reaches the kernel.
 - **FAKEROOT**: Simulates root privileges for `SYSTEM_MODIFY` tasks.
 - **NETWORK_ISO**: Provides a controlled environment for `EXEC_ARBITRARY` tasks with strict outbound rules.
 
 ### 3. The Auditor Agent (The Risk Revelation)
+
 The Auditor Agent analyzes the aftermath of the Ghost Agent's simulation. It performs a bitwise comparison between the original and post-execution states to generate a definitive **Impact Report**. This allows for an evidence-based human override or commitment, finalized with an immutable entry in the SQLite Audit DB.
 
 ---
@@ -87,12 +95,13 @@ flowchart TD
 ```
 
 **Key Features:**
+
 - **ReAct Loops:** Agents reason → act (tool call) → observe → repeat
 - **Session-Based:** Each agent has isolated conversation history
 - **Model Routing:** Different models for different cognitive tasks
 - **Native Tool Calling:** OpenAI function calling directly (no frameworks)
 
-## What we built: The Pulse Platform 
+## What we built: The Pulse Platform
 
 - **Native Multi-Model ReAct Orchestrator**: A custom Python engine managing agentic reasoning via direct OpenAI and Ollama APIs, bypassing restrictive frameworks for maximum control.
 - **Go Railway Execution Engine**: A high-performance Go backend that handles shell AST parsing (via `mvdan.cc/sh`) and sandbox orchestration to provide a deterministic safety layer.
@@ -113,15 +122,18 @@ flowchart TD
 ## User Interaction (The Pulse Workflow)
 
 ### 1. Unified Command Entry (The Proposing Phase)
+
 - **Contextual Terminal Input**: Commands are wrapped in immutable session contexts instead of executing immediately.
 - **High-Velocity Fallback**: Provides "Fast-Path" execution for low-risk commands, ensuring security never slows down productivity.
 
 ### 2. The Visual Pulse Audit (The Observation Phase)
+
 - **Agentic Pipeline Status**: Real-time feedback through Gatekeeper, Ghost, and Auditor agents for a transparent experience.
 - **Ghost-State Visualization**: Flagged commands trigger a "Simulation Preview," showing filesystem changes before they hit the host.
 - **Deep Technical Advisory**: Advisor Agent (Llama-3) provides risk breakdowns and recommended self-healing steps.
 
 ### 3. Decision Resolution (The Commitment Phase)
+
 - **Interventionist Prompts**: Halts any command affecting critical paths, requiring explicit approval from the operator.
 - **Immutable Audit Logs**: Finalizes interactions with an entry in the SQLite log for transparent review of interventions.
 
@@ -168,7 +180,7 @@ flowchart TD
 
 ## for whom?
 
-A local businessman who has spent 10 years building their inventory system doesn't know what `Drop Table` or `rm -rf` means. They shouldn't lose their livelihood because an entry-level freelancer was tired at 2 AM. 
+A local businessman who has spent 10 years building their inventory system doesn't know what `Drop Table` or `rm -rf` means. They shouldn't lose their livelihood because an entry-level freelancer was tired at 2 AM.
 
 Pulse brings **enterprise-grade safety to the grassroots level**. By providing an autonomous team of DevOps agents that act as a safety net, we ensure that local businesses can digitize fearlessly. We aren't just protecting servers; we are protecting livelihoods, jobs, and the backbone of the Indian economy.
 
@@ -177,12 +189,14 @@ Pulse brings **enterprise-grade safety to the grassroots level**. By providing a
 ## Tech Stack
 
 ### Multi-Model Orchestration Layer (Python)
+
 - **Framework:** Native OpenAI API + Ollama (No LangChain/CrewAI)
 - **Pattern:** ReAct Loops + Session-Based Routing (OpenClaw-style)
 - **Models:** GPT-4o-mini (OpenAI free tier) + LLaMA-3/CodeLLaMA (Ollama local)
 - **Dependencies:** `openai`, `requests`, `python-dotenv`
 
 ### Secure Execution Layer (Go)
+
 - **Pattern:** Railway-Oriented Pipeline (ROP) with Immutable Context
 - **Parser:** `mvdan.cc/sh/v3` (shell AST parsing)
 - **Sandbox:** Docker Alpine + Dynamic Filesystem Sync
@@ -192,6 +206,7 @@ Pulse brings **enterprise-grade safety to the grassroots level**. By providing a
 ## Getting Started
 
 ### Prerequisites
+
 - Go 1.21+
 - Python 3.9+
 - Docker Desktop
@@ -238,18 +253,21 @@ ollama pull codellama   # For code review
 ### 5. Run the System
 
 **Option A: Multi-Model Orchestrator (Python)**
+
 ```bash
 # Runs the full 6-agent pipeline with multi-model orchestration
 python main.py
 ```
 
 **Option B: Go CLI (Interactive REPL)**
+
 ```bash
 cd backend
 go run cmd/pulse/main.go
 ```
 
 **Option C: Go Web Dashboard**
+
 ```bash
 cd backend
 go run cmd/pulse/main.go --web
@@ -270,11 +288,13 @@ pulse> npm install               # Should PREVIEW (filesystem changes)
 Pulse includes integration tests in `backend/pkg/ghost` that execute real Docker commands.
 
 ### Prerequisites
+
 - Docker CLI installed (`docker --version`)
 - Docker daemon running (`docker info`)
 - Go toolchain installed
 
 ### Run tests
+
 ```bash
 cd backend
 go test ./...
@@ -290,20 +310,20 @@ This project was developed with assistance from AI tools and models. We believe 
 
 ### AI Tools Used in Development
 
-| Tool/Model | Purpose | Usage in Project |
-|------------|---------|------------------|
-| **Windsurf (Cascade)** | Primary AI coding assistant | End-to-end development: architecture design, code implementation, refactoring, documentation, git operations |
-| **WARP Oz Agent** | Terminal-based AI assistance | Terminal commands, file operations, codebase navigation |
-| **Z.ai** | AI model access | Alternative model interface for testing and validation |
-| **Antigravity** | AI development tool | Code review and debugging assistance |
-| **GitHub Copilot** | Code completion and refactoring | Assisted in writing Go pipeline code, Python orchestrator, and test cases |
-| **OpenAI GPT-4o** | Architecture design and debugging | Helped design the Railway-Oriented Pipeline pattern and immutable context approach |
-| **Claude 3.5 Sonnet** | Code review and documentation | Reviewed multi-model orchestration implementation, edited README |
-| **CrewAI** | Initial agent framework (deprecated) | Used in early prototype (`main.py` v1) - later replaced with custom OpenClaw-style implementation |
-| **LangChain** | Initial LLM integration (deprecated) | Referenced in early `requirements.txt` - removed in favor of native OpenAI API |
-| **GPT-4o-mini** | Runtime model (free tier) | Production model used by Hunter, Cloner, Gatekeeper, and Reporter agents |
-| **LLaMA-3 (via Ollama)** | Runtime model (local/free) | Production model used by Advisor agent for deep risk analysis |
-| **CodeLLaMA (via Ollama)** | Runtime model (local/free) | Production model used by Coder agent for infrastructure analysis |
+| Tool/Model                 | Purpose                              | Usage in Project                                                                                             |
+| -------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| **Windsurf (Cascade)**     | Primary AI coding assistant          | End-to-end development: architecture design, code implementation, refactoring, documentation, git operations |
+| **WARP Oz Agent**          | Terminal-based AI assistance         | Terminal commands, file operations, codebase navigation                                                      |
+| **Z.ai**                   | AI model access                      | Alternative model interface for testing and validation                                                       |
+| **Antigravity**            | AI development tool                  | Code review and debugging assistance                                                                         |
+| **GitHub Copilot**         | Code completion and refactoring      | Assisted in writing Go pipeline code, Python orchestrator, and test cases                                    |
+| **OpenAI GPT-4o**          | Architecture design and debugging    | Helped design the Railway-Oriented Pipeline pattern and immutable context approach                           |
+| **Claude 3.5 Sonnet**      | Code review and documentation        | Reviewed multi-model orchestration implementation, edited README                                             |
+| **CrewAI**                 | Initial agent framework (deprecated) | Used in early prototype (`main.py` v1) - later replaced with custom OpenClaw-style implementation            |
+| **LangChain**              | Initial LLM integration (deprecated) | Referenced in early `requirements.txt` - removed in favor of native OpenAI API                               |
+| **GPT-4o-mini**            | Runtime model (free tier)            | Production model used by Hunter, Cloner, Gatekeeper, and Reporter agents                                     |
+| **LLaMA-3 (via Ollama)**   | Runtime model (local/free)           | Production model used by Advisor agent for deep risk analysis                                                |
+| **CodeLLaMA (via Ollama)** | Runtime model (local/free)           | Production model used by Coder agent for infrastructure analysis                                             |
 
 ### AI-Generated Components
 
@@ -332,11 +352,13 @@ The following components were significantly assisted by AI:
 ### Evolution of AI Usage
 
 **Phase 1 (Initial):** CrewAI + LangChain
+
 - Used CrewAI framework for agent orchestration
 - LangChain for LLM integration
 - Deprecated: Replaced with custom implementation for better control and free-tier compatibility
 
 **Phase 2 (Current):** Native OpenAI API + Custom ReAct
+
 - Direct OpenAI API calls for cloud models (GPT-4o-mini)
 - Ollama integration for local models (LLaMA-3, CodeLLaMA)
 - Custom ReAct loop implementation (OpenClaw-style)
@@ -345,6 +367,7 @@ The following components were significantly assisted by AI:
 ### Human Oversight
 
 All AI-generated code was:
+
 - Reviewed for security vulnerabilities (especially the immutable context pattern)
 - Tested for correctness (Go builds, Python syntax validation)
 - Validated against project requirements (multi-model orchestration, free-tier compatibility)
@@ -353,10 +376,12 @@ All AI-generated code was:
 ### Runtime AI Usage
 
 The production system calls external AI APIs:
+
 - **OpenAI API** (GPT-4o-mini): Used during runtime by 4 agents (Hunter, Cloner, Gatekeeper, Reporter)
 - **Ollama** (LLaMA-3, CodeLLaMA): Used during runtime by 2 agents (Advisor, Coder) - completely free, runs locally
 
 Users can verify AI usage by:
+
 1. Checking `main.py` for OpenAI client initialization
 2. Checking `backend/pkg/agents/advisor.go` for LLaMA-3 integration
 3. Reviewing the `MODEL_ROUTER` configuration in `main.py` lines 20-27

@@ -32,17 +32,40 @@ Pulse replaces static permissions with a **collaborative team of specialized AI 
 
 **Cost:** ~$0 (GPT-4o-mini free tier + local Ollama models)
 
-### 1. The Gatekeeper Agent (Capability Engine)
-The frontline defender. Instead of just blindly executing shell commands or checking a blocklist, the Gatekeeper uses **AST-aware semantic analysis** to understand the command's **Capability**. It distinguishes between safe operations (like `tar -xzf`) and destructive ones (like `git clean -fdx`) by modeling their intent as `MASS_DELETE`, `SYSTEM_MODIFY`, or `EXEC_ARBITRARY`.
+### 1. The Gatekeeper Agent (The Moment of Intent Interception)
+The frontline defender. Instead of just blindly executing shell commands or checking a blocklist, the Gatekeeper uses **AST-aware semantic analysis** to understand the command's **Capability**. It detects destructive patterns like recursive deletion or credential exposure instantly, determining if a command is safe or requires simulation.
 
-### 2. The Ghost Agent (Sandbox v2.0)
-When a command is flagged as risky, the Ghost Engine chooses a **Sandbox Strategy** tailored to its intent:
-- **SNAPSHOT**: Uses OverlayFS-style snapshots to capture `MASS_DELETE` operations, allowing users to see exactly what would be lost.
-- **FAKEROOT**: Simulates root privileges for `SYSTEM_MODIFY` tasks like `chmod` or `chown`.
-- **NETWORK_ISO**: Provides a controlled environment for `EXEC_ARBITRARY` tasks (e.g., `curl | bash`) with strict outbound rules.
+### 2. The Ghost Agent (The Ghost Moat)
+Pulse replaces "AI Hallucinations" with "Simulated Reality." When a command is flagged as risky, the Ghost Engine chooses a **Sandbox Strategy** tailored to its intent:
+- **SNAPSHOT**: Uses OverlayFS-style snapshots to capture `MASS_DELETE` operations, revealing the exact "Blast Radius" of a command before it reaches the kernel.
+- **FAKEROOT**: Simulates root privileges for `SYSTEM_MODIFY` tasks.
+- **NETWORK_ISO**: Provides a controlled environment for `EXEC_ARBITRARY` tasks with strict outbound rules.
 
-### 3. The Auditor Agent
-The Auditor Agent analyzes the aftermath of the Ghost Agent's simulation. It computes an exact diff of the damage (e.g., "This command will delete 15,000 customer records"). It then logs the incident immutably to a SQLite database (`~/.pulse/audit.db`) and halts execution until explicit approval is given. 
+### 3. The Auditor Agent (The Risk Revelation)
+The Auditor Agent analyzes the aftermath of the Ghost Agent's simulation. It performs a bitwise comparison between the original and post-execution states to generate a definitive **Impact Report**. This allows for an evidence-based human override or commitment, finalized with an immutable entry in the SQLite Audit DB.
+
+---
+
+## Real-World Scenarios
+
+- **The "Fat-Finger" Deployment Error:** A developer accidentally types `rm -rf /` instead of a local directory. Pulse intercepts and simulates the command in the Ghost Sandbox, revealing that 15,000 system files would be deleted, prompting an immediate block.
+- **The Disgruntled Ex-Employee:** An administrator tries to run `db.dropDatabase()` on a production instance using cached credentials. The Gatekeeper Agent identifies the high-risk intent and prevents the malicious wipe via simulation-based blocking.
+- **The Malicious Dependency Hook:** A developer runs `npm install` on a package containing a hidden script. The Shell AST Parser detects the unauthorized network egress and file access, revealing the malicious "Blast Radius" before the host is compromised.
+
+---
+
+## Competitive MOAT
+
+- **The Ghost Moat (Simulation Logic):** Pulse has built a proprietary bridge between high-level Agentic Reasoning and low-level Container State Simulation. While competitors only "read" commands, Pulse "rehearses" them.
+- **The Inference Moat (Hybrid Intelligence):** Pulse maintains a strategic advantage through its Multi-Model Routing Architecture. By offloading sensitive infrastructure analysis to local Ollama models while using Cloud LLMs for orchestration, we provide enterprise-grade safety at near-zero token cost.
+
+---
+
+## Scale Potential
+
+- **Distributed Security Mesh:** Scaling from a single-node protector to a distributed "Security Mesh" that synchronizes audit logs and safety policies across thousands of cloud instances.
+- **Enterprise Policy Engine:** Expanding into a global marketplace where organizations download specialized "Agentic Guardrails" for specific stacks like Kubernetes, AWS, or Azure.
+- **Edge-Device Security:** Deploying on IoT devices and edge gateways to provide autonomous, on-device security for the industrial internet backbone.
 
 ---
 

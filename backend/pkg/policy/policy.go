@@ -8,27 +8,38 @@ import (
 )
 
 type Decision string
+type Capability string
 
 const (
 	DecisionAllow   Decision = "ALLOW"
 	DecisionPreview Decision = "PREVIEW"
 	DecisionDeny    Decision = "DENY"
+
+	CapMassDelete    Capability = "MASS_DELETE"
+	CapSystemModify  Capability = "SYSTEM_MODIFY"
+	CapNetworkExfil  Capability = "NETWORK_EXFIL"
+	CapExecArbitrary Capability = "EXEC_ARBITRARY"
 )
 
 type Match struct {
-	Commands []string `yaml:"commands"`
-	Args     []string `yaml:"args"`
+	Capability Capability `yaml:"capability"`
+	Commands   []string   `yaml:"commands,omitempty"`
+	Args       []string   `yaml:"args,omitempty"`
+	Context    string     `yaml:"context,omitempty"`
 }
 
 type Rule struct {
-	Name   string   `yaml:"name"`
-	Action Decision `yaml:"action"`
-	Match  Match    `yaml:"match"`
+	Name       string   `yaml:"name,omitempty"`
+	Capability string   `yaml:"capability,omitempty"`
+	Commands   []string `yaml:"commands,omitempty"`
 }
 
 type Policy struct {
-	Rules []Rule `yaml:"rules"`
+	DefaultAction Decision `yaml:"default_action"`
+	Allow         []Rule   `yaml:"allow"`
+	Deny          []Rule   `yaml:"deny"`
 }
+
 
 // LoadPolicy parses a YAML policy file from the given path
 func LoadPolicy(path string) (*Policy, error) {

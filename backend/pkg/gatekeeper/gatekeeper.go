@@ -7,85 +7,139 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
-// Evaluate parses the command and checks it against the loaded policy.
+// Evaluate parses the command and checks it against the Capability model.
 func Evaluate(cmdString string, pol *policy.Policy) policy.Decision {
-	if pol == nil || len(pol.Rules) == 0 {
-		return policy.DecisionAllow // Default to allow if no policy
-	}
-
 	parser := syntax.NewParser()
 	f, err := parser.Parse(strings.NewReader(cmdString), "")
 	if err != nil {
-		// Deny malformed commands to prevent bypasses
-		return policy.DecisionDeny
+		return policy.DecisionDeny // Deny malformed commands
 	}
 
-	decision := policy.DecisionAllow
-
-	syntax.Walk(f, func(node syntax.Node) bool {
-		call, ok := node.(*syntax.CallExpr)
-		if !ok {
-			return true // continue walking
-		}
-
-		if len(call.Args) == 0 {
-			return true
-		}
-
-		// Extract the command name (first argument)
-		cmdName := wordToString(call.Args[0])
-
-		// Extract the rest as args
-		var args []string
-		for i := 1; i < len(call.Args); i++ {
-			args = append(args, wordToString(call.Args[i]))
-		}
-
-		// Handle common wrappers like sudo, xargs
-		var commandWrappers = map[string]bool{
-			"sudo":  true,
-			"xargs": true,
-			"time":  true,
-			"watch": true,
-			"env":   true,
-		}
-
-		// Basic unwrap and heuristic check
-		isSudo := cmdName == "sudo"
-		if commandWrappers[cmdName] && len(args) > 0 {
-			// Find the first arg that doesn't start with '-' (naive approach for Phase 1)
-			for i, arg := range args {
-				if !strings.HasPrefix(arg, "-") {
-					cmdName = arg
-					args = args[i+1:]
-					break
+	cap, found := EvaluateCapabilities(f)
+	
+	// 1. Check for explicit command-level denials first (e.g. rm -rf /)
+	if pol != nil {
+		for _, rule := range pol.Deny {
+			for _, badCmd := range rule.Commands {
+				if strings.Contains(cmdString, badCmd) {
+					return policy.DecisionDeny
 				}
 			}
 		}
+	}
 
-		// Heuristic: Sudo commands should always be previewed if not denied
-		if isSudo && decision != policy.DecisionDeny {
-			decision = policy.DecisionPreview
-		}
 
-		// Check against rules
-		for _, rule := range pol.Rules {
-			if ruleMatches(rule, cmdName, args) {
-				// We escalate the decision. DENY overrides PREVIEW overrides ALLOW
-				if rule.Action == policy.DecisionDeny {
-					decision = policy.DecisionDeny
-					return false // No need to check further, it's denied
-				}
-				if rule.Action == policy.DecisionPreview && decision != policy.DecisionDeny {
-					decision = policy.DecisionPreview
-				}
+	if !found {
+		return policy.DecisionAllow // Default to allow for non-destructive capabilities
+	}
+
+	// 2. Check policy for capability-specific actions
+	if pol != nil {
+		for _, rule := range pol.Deny {
+			if policy.Capability(rule.Capability) == cap {
+				return policy.DecisionDeny
 			}
 		}
+		for _, rule := range pol.Allow {
+			if policy.Capability(rule.Capability) == cap {
+				return policy.DecisionAllow
+			}
+		}
+		// If capability found but not explicitly allowed/denied, use default_action
+		if pol.DefaultAction != "" {
+			return pol.DefaultAction
+		}
+	}
 
+	// Fallback for default setup
+	switch cap {
+	case policy.CapMassDelete, policy.CapSystemModify, policy.CapExecArbitrary:
+		return policy.DecisionPreview
+	default:
+		return policy.DecisionAllow
+	}
+}
+
+
+// EvaluateCapabilities traverses the AST to find the semantic intent
+func EvaluateCapabilities(node syntax.Node) (policy.Capability, bool) {
+
+	var cmd *syntax.CallExpr
+	syntax.Walk(node, func(n syntax.Node) bool {
+		if c, ok := n.(*syntax.CallExpr); ok {
+			if len(c.Args) > 0 {
+				cmd = c
+				return false
+			}
+		}
 		return true
 	})
 
-	return decision
+	if cmd == nil || len(cmd.Args) == 0 {
+		return "", false
+	}
+
+	baseCmd := wordToString(cmd.Args[0])
+	subCmd := ""
+	if len(cmd.Args) > 1 {
+		secondArg := wordToString(cmd.Args[1])
+		if !strings.HasPrefix(secondArg, "-") {
+			subCmd = secondArg
+		}
+	}
+
+	flags := extractFlags(cmd.Args)
+
+	for cap, signatures := range DestructiveCapabilities {
+		for _, sig := range signatures {
+			if matchSignature(baseCmd, subCmd, flags, sig) {
+				return cap, true
+			}
+		}
+	}
+
+	return "", false
+}
+
+func matchSignature(baseCmd, subCmd string, presentFlags map[string]bool, sig Signature) bool {
+	if baseCmd != sig.Command {
+		return false
+	}
+	if sig.Subcommand != "" && subCmd != sig.Subcommand {
+		return false
+	}
+	
+	if len(sig.DangerousFlags) == 0 && sig.Subcommand != "" {
+		return true
+	}
+
+	for _, df := range sig.DangerousFlags {
+		if presentFlags[df] {
+			return true
+		}
+	}
+
+	return false
+}
+
+func extractFlags(args []*syntax.Word) map[string]bool {
+	flags := make(map[string]bool)
+	for _, arg := range args {
+		str := wordToString(arg)
+		if !strings.HasPrefix(str, "-") {
+			continue
+		}
+		
+		cleaned := strings.TrimLeft(str, "-")
+		if strings.HasPrefix(str, "--") {
+			flags[cleaned] = true
+		} else {
+			for _, r := range cleaned {
+				flags[string(r)] = true
+			}
+		}
+	}
+	return flags
 }
 
 // wordToString extracts a static string representation of a shell word.
@@ -106,40 +160,4 @@ func wordToString(word *syntax.Word) string {
 		}
 	}
 	return sb.String()
-}
-
-// ruleMatches checks if a parsed command and its arguments match a given policy rule.
-func ruleMatches(rule policy.Rule, cmd string, args []string) bool {
-	cmdMatch := false
-	if len(rule.Match.Commands) == 0 {
-		cmdMatch = true
-	} else {
-		for _, c := range rule.Match.Commands {
-			if c == cmd {
-				cmdMatch = true
-				break
-			}
-		}
-	}
-
-	if !cmdMatch {
-		return false
-	}
-
-	// If no args specified in rule, and cmd matched, it's a match
-	if len(rule.Match.Args) == 0 {
-		return true
-	}
-
-	// If args are specified in rule, the command MUST have at least one of those args
-	for _, ruleArg := range rule.Match.Args {
-		for _, arg := range args {
-			// For Phase 1, we do simple exact string or prefix matching based on args
-			if arg == ruleArg || strings.HasPrefix(arg, ruleArg) {
-				return true
-			}
-		}
-	}
-
-	return false
 }

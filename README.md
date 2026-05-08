@@ -256,7 +256,10 @@ This project was developed with assistance from AI tools and models. We believe 
 
 | Tool/Model | Purpose | Usage in Project |
 |------------|---------|------------------|
-| **WARP Oz Agent** | Terminal-based AI assistance | Primary development environment; used for codebase navigation, file operations, and terminal commands |
+| **Windsurf (Cascade)** | Primary AI coding assistant | End-to-end development: architecture design, code implementation, refactoring, documentation, git operations |
+| **WARP Oz Agent** | Terminal-based AI assistance | Terminal commands, file operations, codebase navigation |
+| **Z.ai** | AI model access | Alternative model interface for testing and validation |
+| **Antigravity** | AI development tool | Code review and debugging assistance |
 | **GitHub Copilot** | Code completion and refactoring | Assisted in writing Go pipeline code, Python orchestrator, and test cases |
 | **OpenAI GPT-4o** | Architecture design and debugging | Helped design the Railway-Oriented Pipeline pattern and immutable context approach |
 | **Claude 3.5 Sonnet** | Code review and documentation | Reviewed multi-model orchestration implementation, edited README |

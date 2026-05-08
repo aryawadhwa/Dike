@@ -7,8 +7,9 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/aryawadhwa/dike/pkg/agents"
 	"github.com/aryawadhwa/dike/pkg/ghost"
-	"github.com/aryawadhwa/dike/pkg/orchestrator"
+	"github.com/aryawadhwa/dike/pkg/pipeline"
 	"github.com/aryawadhwa/dike/pkg/policy"
 	"github.com/peterh/liner"
 )
@@ -75,66 +76,74 @@ func Start() {
 			break
 		}
 
-		// Construct the Multi-Agent Context
-		ctx := &orchestrator.Context{
-			Command: input,
-			Policy:  pol,
-		}
+		// Build pipeline once - shared between REPL and headless modes
+		pulsePipeline := buildPipeline(pol)
 
-		// Stage 1: Intercept & Evaluate
-		stage1 := []orchestrator.Agent{
-			&orchestrator.GatekeeperAgent{},
-		}
-		orchestrator.RunPipeline(stage1, ctx)
+		// Execute Railway-Oriented Pipeline with immutable context
+		ctx := pipeline.NewContext(input, pol)
+		finalCtx, err := pipeline.Execute(ctx, pulsePipeline...)
 
-		if ctx.Decision == string(policy.DecisionDeny) {
-			ctx.Decision = "REJECTED"
-			orchestrator.RunPipeline([]orchestrator.Agent{&orchestrator.AuditorAgent{}}, ctx)
-			continue
-		}
-
-		if ctx.Decision == string(policy.DecisionAllow) {
-			executeHostCommand(input)
-			ctx.Decision = "APPLIED"
-			orchestrator.RunPipeline([]orchestrator.Agent{&orchestrator.AuditorAgent{}}, ctx)
-			continue
-		}
-
-		// Stage 2: Sandbox Preview
-		stage2 := []orchestrator.Agent{
-			&orchestrator.GhostAgent{},
-			&orchestrator.DiffAgent{},
-		}
-		err = orchestrator.RunPipeline(stage2, ctx)
 		if err != nil {
+			if pipeline.IsDenyError(err) {
+				fmt.Printf("❌ %v\n", err)
+				// Audit the denial
+				_, _ = pipeline.Execute(finalCtx, agents.Auditor())
+				continue
+			}
 			fmt.Printf("Pipeline error: %v\n", err)
-			ctx.Decision = "ERROR"
-			orchestrator.RunPipeline([]orchestrator.Agent{&orchestrator.AuditorAgent{}}, ctx)
 			continue
 		}
 
-		// Stage 3: Human-in-the-Loop & Advisor
-		for {
-			fmt.Print("\nApply to host? [y/N/e (explain)]: ")
-			ans, _ := line.Prompt("")
-			ans = strings.ToLower(strings.TrimSpace(ans))
+		// Handle decision
+		switch finalCtx.Decision {
+		case pipeline.DecisionAllow:
+			executeHostCommand(input)
+			_, _ = pipeline.Execute(finalCtx, agents.Auditor())
 
-			if ans == "e" || ans == "explain" {
-				adv := &orchestrator.AdvisorAgent{PromptResponse: ans}
-				orchestrator.RunPipeline([]orchestrator.Agent{adv}, ctx)
-			} else if ans == "y" || ans == "yes" {
-				fmt.Println("Executing on host...")
-				executeHostCommand(input)
-				ctx.Decision = "APPLIED"
-				orchestrator.RunPipeline([]orchestrator.Agent{&orchestrator.AuditorAgent{}}, ctx)
-				break
+		case pipeline.DecisionPreview:
+			// Show sandbox results
+			fmt.Printf("\n📋 Sandbox Preview:\n")
+			if len(finalCtx.Sandbox.FileChanges) > 0 {
+				fmt.Println("File changes detected:")
+				for _, change := range finalCtx.Sandbox.FileChanges {
+					fmt.Printf("  %s: %s\n", change.Type, change.Path)
+				}
 			} else {
-				fmt.Println("Discarding sandbox changes.")
-				ctx.Decision = "REJECTED"
-				orchestrator.RunPipeline([]orchestrator.Agent{&orchestrator.AuditorAgent{}}, ctx)
-				break
+				fmt.Println("No file changes detected.")
+			}
+
+			// Human-in-the-loop
+			for {
+				fmt.Print("\nApply to host? [y/N/e (explain)]: ")
+				ans, _ := line.Prompt("")
+				ans = strings.ToLower(strings.TrimSpace(ans))
+
+				if ans == "e" || ans == "explain" {
+					_, _ = pipeline.Execute(finalCtx, agents.Advisor())
+				} else if ans == "y" || ans == "yes" {
+					fmt.Println("Executing on host...")
+					executeHostCommand(input)
+					// Audit the applied decision
+					appliedCtx := finalCtx.WithDecision(pipeline.DecisionAllow, "user approved")
+					_, _ = pipeline.Execute(appliedCtx, agents.Auditor())
+					break
+				} else {
+					fmt.Println("Discarding sandbox changes.")
+					rejectedCtx := finalCtx.WithDecision(pipeline.DecisionDeny, "user rejected")
+					_, _ = pipeline.Execute(rejectedCtx, agents.Auditor())
+					break
+				}
 			}
 		}
+	}
+}
+
+// buildPipeline creates the shared agent pipeline used by both REPL and headless modes.
+// This eliminates the duplication between interactive and non-interactive execution.
+func buildPipeline(pol *policy.Policy) []pipeline.Agent {
+	return []pipeline.Agent{
+		agents.Gatekeeper(),  // Evaluate against policy
+		agents.Ghost(),       // Sandbox if preview required
 	}
 }
 

@@ -5,11 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/aryawadhwa/dike/pkg/advisor"
-	"github.com/aryawadhwa/dike/pkg/audit"
-	"github.com/aryawadhwa/dike/pkg/diff"
-	"github.com/aryawadhwa/dike/pkg/gatekeeper"
-	"github.com/aryawadhwa/dike/pkg/ghost"
+	"github.com/aryawadhwa/dike/pkg/agents"
+	"github.com/aryawadhwa/dike/pkg/pipeline"
 	"github.com/aryawadhwa/dike/pkg/policy"
 )
 
@@ -28,8 +25,10 @@ type DiffJSON struct {
 	Modified []string `json:"modified"`
 }
 
-// HeadlessExecute runs a command non-interactively and outputs JSON
+// HeadlessExecute runs a command non-interactively using the Railway-Oriented Pipeline.
+// This is now a simple wrapper around the shared pipeline - no duplication with REPL.
 func HeadlessExecute(cmdStr string, dir string) {
+	// Default output structure
 	out := HeadlessOutput{
 		RiskLevel: "UNKNOWN",
 		DiffSummary: DiffJSON{
@@ -44,6 +43,7 @@ func HeadlessExecute(cmdStr string, dir string) {
 		dir = cwd
 	}
 
+	// Load policy
 	pol, err := policy.LoadPolicy("configs/SAFETY.yaml")
 	if err != nil {
 		out.Error = fmt.Sprintf("Failed to load policy: %v", err)
@@ -51,52 +51,58 @@ func HeadlessExecute(cmdStr string, dir string) {
 		return
 	}
 
-	if err := ghost.InitSandbox(dir); err != nil {
-		out.Error = fmt.Sprintf("Failed to init sandbox: %v", err)
+	// Use shared pipeline - same as REPL mode
+	pulsePipeline := buildPipeline(pol)
+
+	// Execute Railway-Oriented Pipeline
+	ctx := pipeline.NewContext(cmdStr, pol)
+	finalCtx, err := pipeline.Execute(ctx, pulsePipeline...)
+
+	// Handle pipeline outcomes
+	if err != nil {
+		if denyErr, ok := err.(*pipeline.DenyError); ok {
+			out.RiskLevel = "CRITICAL"
+			out.Explanation = denyErr.Reason
+			printJSON(out)
+			// Audit the denial
+			_, _ = pipeline.Execute(finalCtx, agents.Auditor())
+			return
+		}
+		out.Error = err.Error()
 		printJSON(out)
 		return
 	}
-	defer ghost.Teardown()
 
-	decision := gatekeeper.Evaluate(cmdStr, pol)
-	
-	switch decision {
-	case policy.DecisionDeny:
+	// Build output based on final context decision
+	switch finalCtx.Decision {
+	case pipeline.DecisionDeny:
 		out.RiskLevel = "CRITICAL"
-		out.Explanation = advisor.ExplainCommand(cmdStr)
-	case policy.DecisionPreview:
+		out.Explanation = finalCtx.DenyReason
+
+	case pipeline.DecisionPreview:
 		out.RiskLevel = "HIGH"
+		out.Stdout = finalCtx.Sandbox.Stdout
 		
-		stdout, err := ghost.ExecPreview(cmdStr)
-		out.Stdout = stdout
-		if err != nil {
-			out.Error = err.Error()
+		// Populate diff summary from immutable context
+		for _, change := range finalCtx.Sandbox.FileChanges {
+			switch change.Type {
+			case "created":
+				out.DiffSummary.Created = append(out.DiffSummary.Created, change.Path)
+			case "deleted":
+				out.DiffSummary.Deleted = append(out.DiffSummary.Deleted, change.Path)
+			case "modified":
+				out.DiffSummary.Modified = append(out.DiffSummary.Modified, change.Path)
+			}
 		}
+		out.Explanation = "Sandbox preview completed. Review file changes."
 
-		diffSummary, err := diff.ComputeDiff("pulse-ghost")
-		if err == nil {
-			out.DiffSummary.Created = diffSummary.Added
-			out.DiffSummary.Deleted = diffSummary.Deleted
-		}
-
-		out.Explanation = advisor.ExplainCommand(cmdStr)
-	case policy.DecisionAllow:
+	case pipeline.DecisionAllow:
 		out.RiskLevel = "LOW"
 		out.Explanation = "Command is safe and allowed by policy."
 	}
 
-	decisionVal := "REJECTED"
-	if out.RiskLevel == "LOW" {
-		decisionVal = "APPLIED"
-	}
-	
-	// Create a readable summary from the DiffJSON struct
-	diffSummaryStr := "No file changes detected."
-	if len(out.DiffSummary.Created) > 0 || len(out.DiffSummary.Deleted) > 0 {
-		diffSummaryStr = fmt.Sprintf("Files created: %v\nFiles deleted: %v", out.DiffSummary.Created, out.DiffSummary.Deleted)
-	}
-
-	_ = audit.LogDecision(cmdStr, out.RiskLevel, decisionVal, diffSummaryStr)
+	// Audit the execution
+	_, _ = pipeline.Execute(finalCtx, agents.Auditor())
 
 	printJSON(out)
 }

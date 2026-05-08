@@ -27,3 +27,7 @@ audit.db
 .env
 __pycache__/
 *.pyc
+
+# macOS Finder artifacts
+.DS_Store
+**/.DS_Store
